@@ -1,0 +1,53 @@
+export const VIEW = { w: 480, h: 800 };
+
+export const COLORS = {
+  bg: '#05070d',
+  grid: 'rgba(90, 170, 255, 0.05)',
+  frame: 'rgba(120, 200, 255, 0.14)',
+  player: '#5df3ff',
+  bullet: '#b9f7ff',
+  enemy: '#ff4d9d',
+  enemyAlt: '#ffc266',
+  ebullet: '#ff6bb5',
+  hud: '#e8fbff',
+  dim: 'rgba(150, 200, 255, 0.55)',
+  faint: 'rgba(150, 200, 255, 0.5)',
+};
+
+export const FONT = {
+  mono: "'Cascadia Mono', 'JetBrains Mono', ui-monospace, Consolas, monospace",
+  sans: "'Segoe UI', system-ui, -apple-system, sans-serif",
+};
+
+export const DIFFICULTIES = {
+  standard: {
+    id: 'standard',
+    name: '标准',
+    shields: 3,
+    invulnTime: 1.2,
+    spawnScale: 1,
+    bulletScale: 1,
+  },
+  hardcore: {
+    id: 'hardcore',
+    name: '硬核',
+    shields: 1,
+    invulnTime: 0,
+    spawnScale: 0.85,
+    bulletScale: 1.12,
+  },
+};
+
+export const PLAYER = {
+  speed: 330,
+  radius: 6,
+  fireRate: 7.5,
+  bulletSpeed: 720,
+};
+
+export const ENEMY = {
+  hp: 3,
+  bulletSpeed: 178,
+};
+
+export const WAVE_SECONDS = 20;
