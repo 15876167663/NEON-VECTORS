@@ -18,13 +18,14 @@ function tick(enemy, dt) {
 
 function warnRing(ctx, enemy, radius) {
   if (enemy.shootT > 0.3 || enemy.dead) return;
-  const k = 1 - enemy.shootT / 0.3;
+  const k = Math.min(1, Math.max(0, 1 - enemy.shootT / 0.3));
+  const ringRadius = Math.max(4, radius + (1 - k) * 14);
   ctx.save();
   ctx.translate(enemy.x, enemy.y);
   ctx.strokeStyle = `rgba(255, 214, 150, ${0.16 + k * 0.5})`;
   ctx.lineWidth = 1 + k * 1.4;
   ctx.beginPath();
-  ctx.arc(0, 0, radius + (1 - k) * 14, 0, Math.PI * 2);
+  ctx.arc(0, 0, ringRadius, 0, Math.PI * 2);
   ctx.stroke();
   ctx.restore();
 }
@@ -184,15 +185,15 @@ export class TurretEnemy {
     } else {
       this.x += this.driftDir * 26 * dt;
       if (this.x < 70 || this.x > VIEW.w - 70) this.driftDir *= -1;
-    }
 
-    this.shootT -= dt;
-    if (this.shootT <= 0 && this.y >= this.hoverY - 2) {
-      this.shootT = 1.5;
-      this.volleys += 1;
-      if (this.volleys % 3 === 0) spiralBurst(scene, this, 4, this.phase);
-      else ringBurst(scene, this, 8, this.phase);
-      this.phase += 0.38;
+      this.shootT -= dt;
+      if (this.shootT <= 0) {
+        this.shootT = 1.5;
+        this.volleys += 1;
+        if (this.volleys % 3 === 0) spiralBurst(scene, this, 4, this.phase);
+        else ringBurst(scene, this, 8, this.phase);
+        this.phase += 0.38;
+      }
     }
   }
 

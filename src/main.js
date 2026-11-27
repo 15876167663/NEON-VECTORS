@@ -24,22 +24,33 @@ fit();
 const STEP = 1 / 60;
 let last = performance.now();
 let acc = 0;
+let lastErrorAt = -Infinity;
 
 function frame(now) {
+  requestAnimationFrame(frame);
+
   let dt = (now - last) / 1000;
   last = now;
   if (dt > 0.25) dt = 0.25;
 
   acc += dt;
-  let guard = 0;
-  while (acc >= STEP && guard < 5) {
-    game.update(STEP);
-    acc -= STEP;
-    guard += 1;
-  }
+  try {
+    let guard = 0;
+    while (acc >= STEP && guard < 5) {
+      game.update(STEP);
+      acc -= STEP;
+      guard += 1;
+    }
+    if (guard >= 5) acc = 0;
 
-  game.render();
-  requestAnimationFrame(frame);
+    game.render();
+  } catch (error) {
+    acc = 0;
+    if (now - lastErrorAt > 1000) {
+      lastErrorAt = now;
+      console.error('frame error', error);
+    }
+  }
 }
 
 requestAnimationFrame(frame);
