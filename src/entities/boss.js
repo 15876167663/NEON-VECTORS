@@ -86,6 +86,9 @@ const KITS = {
 
 const ORDER = ['hex', 'orbit', 'prism'];
 
+const easeInOut = (t) =>
+  t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+
 export class Boss {
   constructor(index) {
     this.index = index;
@@ -106,6 +109,14 @@ export class Boss {
     this.shootSub = 1.6;
     this.dir = Math.random() < 0.5 ? 1 : -1;
     this.dead = false;
+    this.invulnT = 0;
+    this.pulseT = 0;
+    this.moveFromY = this.targetY;
+    this.moveToY = this.targetY;
+    this.moveT = 1;
+    this.moveDur = 1;
+    this.transitionDur = 0.95;
+    this.bobAmp = 0;
   }
 
   get color() {
@@ -119,6 +130,8 @@ export class Boss {
   update(dt, scene) {
     this.t += dt;
     if (this.hitFlash > 0) this.hitFlash = Math.max(0, this.hitFlash - dt);
+    if (this.invulnT > 0) this.invulnT = Math.max(0, this.invulnT - dt);
+    if (this.pulseT > 0) this.pulseT = Math.max(0, this.pulseT - dt);
     this.rot += dt * (0.6 + this.phase * 0.25);
 
     if (this.state === 'entering') {
@@ -134,11 +147,14 @@ export class Boss {
 
     if (this.state === 'transition') {
       this.stateT -= dt;
-      this.y += (this.targetY - this.y) * Math.min(1, dt * 3);
+      this.moveT = Math.min(1, this.moveT + dt / this.moveDur);
+      this.y = this.moveFromY + (this.moveToY - this.moveFromY) * easeInOut(this.moveT);
       if (this.stateT <= 0) {
         this.state = 'fighting';
-        this.shootMain = 0.7;
-        this.shootSub = 1;
+        this.y = this.targetY;
+        this.shootMain = 0.95;
+        this.shootSub = 1.3;
+        scene.onBossTransitionEnd?.(this);
       }
       return;
     }
@@ -151,7 +167,8 @@ export class Boss {
 
     this.x += this.dir * (42 + this.phase * 14) * dt;
     if (this.x < 90 || this.x > VIEW.w - 90) this.dir *= -1;
-    this.y = this.targetY + Math.sin(this.t * 1.3) * 18;
+    this.bobAmp = Math.min(18, this.bobAmp + dt * 26);
+    this.y = this.targetY + Math.sin(this.t * 1.3) * this.bobAmp;
 
     this.shootMain -= dt;
     this.shootSub -= dt;
@@ -168,8 +185,24 @@ export class Boss {
     }
   }
 
+  beginTransition(targetY) {
+    this.state = 'transition';
+    this.transitionDur = 1;
+    this.stateT = this.transitionDur;
+    this.invulnT = this.transitionDur;
+    this.pulseT = 0.45;
+    this.moveFromY = this.y;
+    this.moveToY = targetY;
+    this.targetY = targetY;
+    this.moveT = 0;
+    this.moveDur = this.transitionDur;
+    this.bobAmp = 0;
+    this.shootMain = this.transitionDur;
+    this.shootSub = this.transitionDur;
+  }
+
   damage(amount, scene) {
-    if (this.state !== 'fighting') return;
+    if (this.state !== 'fighting' || this.invulnT > 0) return;
 
     this.hp -= amount;
     this.hitFlash = 0.08;
@@ -186,8 +219,7 @@ export class Boss {
     const nextPhase = ratio > 0.66 ? 1 : ratio > 0.33 ? 2 : 3;
     if (nextPhase > this.phase) {
       this.phase = nextPhase;
-      this.state = 'transition';
-      this.stateT = 0.9;
+      this.beginTransition(120 + Math.random() * 70);
       scene.onBossPhase(this);
     }
   }
@@ -297,13 +329,46 @@ export class Boss {
     ctx.restore();
 
     if (this.state === 'transition') {
+      const k = Math.min(1, this.moveT);
+      const shield = this.transitionDur > 0
+        ? Math.min(1, this.invulnT / this.transitionDur)
+        : 0;
+
       ctx.save();
       ctx.translate(this.x, this.y);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.7)';
-      ctx.lineWidth = 3;
+
+      ctx.strokeStyle = color;
+      ctx.globalAlpha = (1 - k) * 0.8;
+      ctx.lineWidth = 3 - k * 1.6;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 18;
       ctx.beginPath();
-      ctx.arc(0, 0, this.r + 10 + Math.sin(this.t * 20) * 3, 0, Math.PI * 2);
+      ctx.arc(0, 0, this.r + 12 + k * 95, 0, Math.PI * 2);
       ctx.stroke();
+
+      ctx.globalAlpha = 0.35 + shield * 0.55;
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2.4;
+      ctx.shadowColor = color;
+      ctx.shadowBlur = 14;
+      const spin = this.t * 3.2;
+      for (let i = 0; i < 3; i += 1) {
+        const start = spin + (i * Math.PI * 2) / 3;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.r + 7, start, start + 1.05);
+        ctx.stroke();
+      }
+
+      if (this.pulseT > 0) {
+        const p = 1 - this.pulseT / 0.45;
+        ctx.globalAlpha = (1 - p) * 0.85;
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.r * 0.7 + p * 26, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
       ctx.restore();
     }
 

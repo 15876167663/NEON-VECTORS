@@ -191,13 +191,21 @@ export class PlayScene {
   onBossPhase(boss) {
     this.game.audio?.sfx('phase');
     this.hitStop = Math.max(this.hitStop, JUICE.phaseStop);
+    for (const bullet of this.ebullets) {
+      spawnBurst(this.particles, bullet.x, bullet.y, 1, '#ffd166', 60, 0.3, 1.3);
+    }
     this.ebullets.length = 0;
-    this.flash = 0.55;
-    this.shake = 12;
+    this.flash = 0.42;
+    this.shake = 9;
     this.phaseBannerT = 1.4;
     this.phaseText = `PHASE ${boss.phase}`;
-    boss.targetY = 120 + Math.random() * 70;
-    spawnBurst(this.particles, boss.x, boss.y, 36, '#ffffff', 260, 0.8, 2.6);
+    spawnBurst(this.particles, boss.x, boss.y, 28, '#ffffff', 240, 0.7, 2.4);
+  }
+
+  onBossTransitionEnd(boss) {
+    this.game.audio?.sfx('shield');
+    this.shake = Math.max(this.shake, 3);
+    spawnBurst(this.particles, boss.x, boss.y, 8, boss.color, 120, 0.3, 1.8);
   }
 
   onBossDeath(boss) {
@@ -365,7 +373,10 @@ export class PlayScene {
     this.bullets = this.bullets.filter((bullet) => !bullet.dead);
     this.enemies = this.enemies.filter((enemy) => !enemy.dead);
 
-    if (this.boss && this.boss.state === 'fighting') {
+    if (
+      this.boss &&
+      (this.boss.state === 'fighting' || this.boss.state === 'transition')
+    ) {
       for (const bullet of this.bullets) {
         if (bullet.dead) continue;
         const dx = bullet.x - this.boss.x;
@@ -374,9 +385,22 @@ export class PlayScene {
         if (dx * dx + dy * dy > reach * reach) continue;
 
         bullet.dead = true;
-        this.boss.damage(1, this);
-        this.game.audio?.sfx('hit');
-        spawnBurst(this.particles, bullet.x, bullet.y, 2, '#ffffff', 130, 0.15, 1.4);
+        if (this.boss.state === 'fighting') {
+          this.boss.damage(1, this);
+          this.game.audio?.sfx('hit');
+          spawnBurst(this.particles, bullet.x, bullet.y, 2, '#ffffff', 130, 0.15, 1.4);
+        } else {
+          spawnBurst(
+            this.particles,
+            bullet.x,
+            bullet.y,
+            2,
+            this.boss.color,
+            90,
+            0.22,
+            1.5
+          );
+        }
       }
       this.bullets = this.bullets.filter((bullet) => !bullet.dead);
     }
