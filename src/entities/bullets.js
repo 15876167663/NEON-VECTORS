@@ -1,19 +1,21 @@
 export function drawPlayerBullets(ctx, bullets) {
   if (!bullets.length) return;
 
+  const style = bullets[0];
   ctx.save();
   ctx.globalCompositeOperation = 'lighter';
-  ctx.strokeStyle = '#b9f7ff';
-  ctx.lineWidth = 3;
+  ctx.strokeStyle = style.color || '#b9f7ff';
+  ctx.lineWidth = style.width || 3;
   ctx.lineCap = 'round';
-  ctx.shadowColor = 'rgba(120, 240, 255, 0.95)';
+  ctx.shadowColor = style.color || 'rgba(120, 240, 255, 0.95)';
   ctx.shadowBlur = 14;
   ctx.beginPath();
   for (const bullet of bullets) {
     const length = Math.hypot(bullet.vx, bullet.vy) || 1;
     const dx = bullet.vx / length;
     const dy = bullet.vy / length;
-    ctx.moveTo(bullet.x - dx * 16, bullet.y - dy * 16);
+    const tail = bullet.len || 16;
+    ctx.moveTo(bullet.x - dx * tail, bullet.y - dy * tail);
     ctx.lineTo(bullet.x + dx * 6, bullet.y + dy * 6);
   }
   ctx.stroke();

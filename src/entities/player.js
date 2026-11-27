@@ -1,7 +1,8 @@
 import { VIEW, COLORS, PLAYER } from '../config.js';
+import { getWeaponFireRate } from '../game/weapons.js';
 
 export class Player {
-  constructor(diff) {
+  constructor(diff, weaponId = 'pulse') {
     this.x = VIEW.w / 2;
     this.y = VIEW.h - 120;
     this.radius = PLAYER.radius;
@@ -9,6 +10,7 @@ export class Player {
     this.maxShields = diff.shields;
     this.invuln = 0;
     this.fireT = 0;
+    this.weaponId = weaponId;
     this.weaponLevel = 1;
   }
 
@@ -41,7 +43,7 @@ export class Player {
     this.fireT -= dt;
     while (this.fireT <= 0) {
       scene.playerFire(this);
-      this.fireT += 1 / PLAYER.fireRate;
+      this.fireT += 1 / getWeaponFireRate(this.weaponId, this.weaponLevel);
     }
   }
 

@@ -1,4 +1,5 @@
 import { VIEW, COLORS, FONT, BOMB, COMBO, PICKUP } from '../config.js';
+import { getWeapon } from '../game/weapons.js';
 
 export function drawHud(ctx, scene) {
   ctx.textBaseline = 'alphabetic';
@@ -26,8 +27,11 @@ export function drawHud(ctx, scene) {
 
   ctx.textAlign = 'left';
   ctx.font = `500 10px ${FONT.mono}`;
-  ctx.fillStyle = 'rgba(126, 240, 255, 0.55)';
-  ctx.fillText(`WPN LV.${scene.player.weaponLevel}`, 22, 76);
+  const weapon = getWeapon(scene.player.weaponId);
+  ctx.fillStyle = weapon.color;
+  ctx.globalAlpha = 0.7;
+  ctx.fillText(`${weapon.name} LV.${scene.player.weaponLevel}`, 22, 76);
+  ctx.globalAlpha = 1;
 
   ctx.textAlign = 'center';
   ctx.font = `500 11px ${FONT.mono}`;

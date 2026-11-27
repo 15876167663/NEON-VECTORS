@@ -179,7 +179,14 @@ export class AudioEngine {
       case 'shoot': {
         if (t - this.lastShoot < 0.14) return;
         this.lastShoot = t;
-        this.tone('triangle', 1450 + (opt.level || 1) * 55, 620, 0.055, 0.045);
+        const level = opt.level || 1;
+        if (opt.weapon === 'lance') {
+          this.tone('sawtooth', 900 + level * 35, 280, 0.09, 0.05);
+        } else if (opt.weapon === 'scatter') {
+          this.tone('square', 720 + level * 30, 300, 0.07, 0.05);
+        } else {
+          this.tone('triangle', 1450 + level * 55, 620, 0.055, 0.045);
+        }
         break;
       }
       case 'hit': {

@@ -6,6 +6,7 @@ import { Backdrop } from '../render/backdrop.js';
 import { TitleScene } from '../scenes/TitleScene.js';
 import { PlayScene } from '../scenes/PlayScene.js';
 import { SettingsScene } from '../scenes/SettingsScene.js';
+import { WeaponScene } from '../scenes/WeaponScene.js';
 
 export class Game {
   constructor(canvas) {
@@ -43,8 +44,12 @@ export class Game {
     this.setScene(new SettingsScene(this));
   }
 
-  startGame(difficultyId) {
-    this.setScene(new PlayScene(this, difficultyId));
+  toWeapon(difficultyId) {
+    this.setScene(new WeaponScene(this, difficultyId));
+  }
+
+  startGame(difficultyId, weaponId) {
+    this.setScene(new PlayScene(this, difficultyId, weaponId));
   }
 
   setScene(scene) {

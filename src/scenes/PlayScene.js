@@ -2,7 +2,7 @@ import { VIEW, COLORS, DIFFICULTIES, BOMB, COMBO, PICKUP, BOSS, JUICE, WAVE_SECO
 import { Player } from '../entities/player.js';
 import { Boss } from '../entities/boss.js';
 import { spawnEnemy, spawnInterval } from '../game/director.js';
-import { fireWeapon } from '../game/weapons.js';
+import { fireWeapon, getWeapon } from '../game/weapons.js';
 import { Pickup } from '../entities/pickups.js';
 import { spawnBurst, updateParticles, drawParticles } from '../entities/particles.js';
 import { spawnFloater, updateFloaters, drawFloaters } from '../game/floaters.js';
@@ -12,10 +12,11 @@ import { label } from '../core/draw.js';
 import { vibrate } from '../settings.js';
 
 export class PlayScene {
-  constructor(game, difficultyId) {
+  constructor(game, difficultyId, weaponId = 'pulse') {
     this.game = game;
     this.diff = DIFFICULTIES[difficultyId] || DIFFICULTIES.standard;
-    this.player = new Player(this.diff);
+    this.weaponId = weaponId;
+    this.player = new Player(this.diff, weaponId);
     this.bullets = [];
     this.ebullets = [];
     this.enemies = [];
@@ -76,7 +77,7 @@ export class PlayScene {
 
   pointerDown(pointer) {
     if (this.phase === 'over') {
-      this.game.startGame(this.diff.id);
+      this.game.startGame(this.diff.id, this.weaponId);
       return;
     }
 
@@ -114,8 +115,9 @@ export class PlayScene {
 
   keyDown(key) {
     if (this.phase === 'over') {
-      if (key === 'r' || key === ' ' || key === 'enter') this.game.startGame(this.diff.id);
-      else if (key === 'escape' || key === 't') this.game.toTitle();
+      if (key === 'r' || key === ' ' || key === 'enter') {
+        this.game.startGame(this.diff.id, this.weaponId);
+      } else if (key === 'escape' || key === 't') this.game.toTitle();
       return;
     }
 
@@ -140,9 +142,12 @@ export class PlayScene {
   }
 
   playerFire(player) {
-    fireWeapon(this, player.x, player.y - 14, player.weaponLevel);
+    fireWeapon(this, player.x, player.y - 14, player.weaponId, player.weaponLevel);
     spawnBurst(this.particles, player.x, player.y - 16, 2, COLORS.bullet, 80, 0.14, 1.1);
-    this.game.audio?.sfx('shoot', { level: player.weaponLevel });
+    this.game.audio?.sfx('shoot', {
+      level: player.weaponLevel,
+      weapon: player.weaponId,
+    });
   }
 
   useBomb() {
@@ -352,7 +357,7 @@ export class PlayScene {
         const reach = enemy.r + bullet.r;
         if (dx * dx + dy * dy > reach * reach) continue;
 
-        enemy.hp -= 1;
+        enemy.hp -= bullet.damage ?? 1;
         enemy.hitFlash = 0.09;
         this.game.audio?.sfx('hit');
         spawnBurst(this.particles, bullet.x, bullet.y, 3, '#ffffff', 140, 0.16, 1.5);
@@ -386,7 +391,7 @@ export class PlayScene {
 
         bullet.dead = true;
         if (this.boss.state === 'fighting') {
-          this.boss.damage(1, this);
+          this.boss.damage(bullet.damage ?? 1, this);
           this.game.audio?.sfx('hit');
           spawnBurst(this.particles, bullet.x, bullet.y, 2, '#ffffff', 130, 0.15, 1.4);
         } else {
@@ -665,7 +670,8 @@ export class PlayScene {
     });
 
     label(ctx, '武器', rightX, rowY + 50, 12, COLORS.faint, { align: 'right', weight: 500 });
-    label(ctx, `Lv.${this.player.weaponLevel}`, rightX, rowY + 70, 18, '#7ef0ff', {
+    const weapon = getWeapon(this.player.weaponId);
+    label(ctx, `${weapon.name} Lv.${this.player.weaponLevel}`, rightX, rowY + 70, 15, weapon.color, {
       align: 'right',
       mono: true,
       weight: 700,

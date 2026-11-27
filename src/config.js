@@ -41,8 +41,6 @@ export const DIFFICULTIES = {
 export const PLAYER = {
   speed: 330,
   radius: 6,
-  fireRate: 7.5,
-  bulletSpeed: 720,
 };
 
 export const ENEMY = {

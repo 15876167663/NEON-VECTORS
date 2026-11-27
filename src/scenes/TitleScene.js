@@ -69,7 +69,7 @@ export class TitleScene {
 
   start(id) {
     this.game.audio?.sfx('select');
-    this.game.startGame(id);
+    this.game.toWeapon(id);
   }
 
   cardRect(index) {
@@ -118,7 +118,7 @@ export class TitleScene {
     this.drawSettingsButton(ctx);
 
     const blink = 0.4 + 0.6 * Math.abs(Math.sin(this.time * 2));
-    label(ctx, '← → 切换 · 空格 / 点击开始', VIEW.w / 2, 600, 15, '#d6f1ff', {
+    label(ctx, '← → 切换 · 空格 / 点击选择武器', VIEW.w / 2, 600, 15, '#d6f1ff', {
       weight: 600,
       alpha: blink,
       glow: 10,
