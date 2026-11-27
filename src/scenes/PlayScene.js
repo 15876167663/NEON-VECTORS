@@ -1,6 +1,6 @@
-import { VIEW, COLORS, DIFFICULTIES, PLAYER, ENEMY, WAVE_SECONDS } from '../config.js';
+import { VIEW, COLORS, DIFFICULTIES, PLAYER, BOMB, WAVE_SECONDS } from '../config.js';
 import { Player } from '../entities/player.js';
-import { Enemy } from '../entities/enemy.js';
+import { spawnEnemy, spawnInterval } from '../game/director.js';
 import { spawnBurst, updateParticles, drawParticles } from '../entities/particles.js';
 import { drawPlayerBullets, drawEnemyBullets } from '../entities/bullets.js';
 import { drawHud } from '../render/hud.js';
@@ -20,24 +20,50 @@ export class PlayScene {
     this.kills = 0;
     this.spawnT = 0.9;
     this.shake = 0;
+    this.flash = 0;
+    this.bombs = BOMB.count;
+    this.paused = false;
     this.phase = 'playing';
     this.dyingT = 0;
     this.pointerActive = false;
+    this.onVisibility = null;
   }
 
   get wave() {
     return 1 + Math.floor(this.time / WAVE_SECONDS);
   }
 
-  exit() {
-    this.pointerActive = false;
+  enter() {
+    this.onVisibility = () => {
+      if (document.hidden && this.phase === 'playing') this.paused = true;
+    };
+    document.addEventListener('visibilitychange', this.onVisibility);
   }
 
-  pointerDown() {
+  exit() {
+    this.pointerActive = false;
+    if (this.onVisibility) document.removeEventListener('visibilitychange', this.onVisibility);
+  }
+
+  pointerDown(pointer) {
     if (this.phase === 'over') {
       this.game.startGame(this.diff.id);
       return;
     }
+
+    if (this.phase !== 'playing' || this.paused) {
+      this.pointerActive = false;
+      return;
+    }
+
+    const bombLeft = VIEW.w - 96;
+    const bombTop = VIEW.h - 46;
+    if (pointer.x >= bombLeft && pointer.y >= bombTop) {
+      this.useBomb();
+      this.pointerActive = false;
+      return;
+    }
+
     this.pointerActive = true;
   }
 
@@ -51,39 +77,49 @@ export class PlayScene {
       else if (key === 'escape' || key === 't') this.game.toTitle();
       return;
     }
-    if (key === 'escape') this.game.toTitle();
+
+    if (this.paused) {
+      if (key === 'escape' || key === 'p' || key === ' ') this.paused = false;
+      else if (key === 't') this.game.toTitle();
+      return;
+    }
+
+    if (key === 'escape' || key === 'p') {
+      if (this.phase === 'playing') this.paused = true;
+    } else if (key === 'x' || key === 'shift') {
+      this.useBomb();
+    }
   }
 
   spawnPlayerShot(x, y) {
     this.bullets.push({ x, y, vy: -PLAYER.bulletSpeed, r: 3.5, dead: false });
   }
 
-  spawnEnemyVolley(enemy) {
-    const aim = Math.atan2(this.player.y - enemy.y, this.player.x - enemy.x);
-    const speed = ENEMY.bulletSpeed * this.diff.bulletScale;
-    for (let i = -1; i <= 1; i++) {
-      const angle = aim + i * 0.15;
-      this.ebullets.push({
-        x: enemy.x,
-        y: enemy.y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        r: 5,
-      });
+  useBomb() {
+    if (this.phase !== 'playing' || this.paused || this.bombs <= 0) return;
+
+    this.bombs -= 1;
+    this.flash = 1;
+    this.shake = 18;
+    this.player.invuln = Math.max(this.player.invuln, BOMB.invuln);
+
+    for (const bullet of this.ebullets) {
+      spawnBurst(this.particles, bullet.x, bullet.y, 2, COLORS.ebullet, 90, 0.3, 1.6);
     }
-  }
+    this.ebullets.length = 0;
 
-  spawnEnemy() {
-    const speed = 42 + Math.random() * 26 + Math.min(this.time * 0.5, 40);
-    this.enemies.push(new Enemy(60 + Math.random() * (VIEW.w - 120), -40, speed));
-
-    const base = Math.max(0.5, 1.5 - this.time * 0.02) * this.diff.spawnScale;
-    this.spawnT = base * (0.75 + Math.random() * 0.6);
+    for (const enemy of this.enemies) {
+      if (enemy.dead) continue;
+      enemy.hp -= BOMB.damage;
+      enemy.hitFlash = 0.12;
+      if (enemy.hp <= 0) this.killEnemy(enemy);
+    }
+    this.enemies = this.enemies.filter((enemy) => !enemy.dead);
   }
 
   killEnemy(enemy) {
     enemy.dead = true;
-    this.score += 100;
+    this.score += enemy.score;
     this.kills += 1;
     this.shake = Math.min(6, this.shake + 3);
     spawnBurst(this.particles, enemy.x, enemy.y, 18, COLORS.enemy, 240, 0.65, 2.6);
@@ -154,17 +190,29 @@ export class PlayScene {
   }
 
   update(dt) {
+    if (this.paused) return;
+
     this.time += dt;
     this.shake = this.shake > 0.05 ? this.shake * Math.exp(-5 * dt) : 0;
+    this.flash = Math.max(0, this.flash - dt * 2.6);
 
     if (this.phase === 'playing') {
       this.player.update(dt, this.game.input, this);
 
       this.spawnT -= dt;
-      if (this.spawnT <= 0) this.spawnEnemy();
+      if (this.spawnT <= 0) {
+        spawnEnemy(this, this.time);
+        this.spawnT = spawnInterval(this.time) * this.diff.spawnScale * (0.8 + Math.random() * 0.4);
+      }
 
       for (const enemy of this.enemies) enemy.update(dt, this);
-      this.enemies = this.enemies.filter((enemy) => enemy.y < VIEW.h + 80 && !enemy.dead);
+      this.enemies = this.enemies.filter(
+        (enemy) =>
+          !enemy.dead &&
+          enemy.y < VIEW.h + 80 &&
+          enemy.x > -80 &&
+          enemy.x < VIEW.w + 80
+      );
 
       for (const bullet of this.bullets) bullet.y += bullet.vy * dt;
       this.bullets = this.bullets.filter((bullet) => bullet.y > -40 && !bullet.dead);
@@ -207,8 +255,23 @@ export class PlayScene {
     ctx.lineWidth = 1;
     ctx.strokeRect(0.5, 0.5, VIEW.w - 1, VIEW.h - 1);
 
+    if (this.flash > 0) {
+      ctx.fillStyle = `rgba(170, 245, 255, ${(this.flash * 0.45).toFixed(3)})`;
+      ctx.fillRect(0, 0, VIEW.w, VIEW.h);
+    }
+
     if (this.phase !== 'over') drawHud(ctx, this);
+    if (this.paused) this.drawPause(ctx);
     if (this.phase === 'over') this.drawGameOver(ctx);
+  }
+
+  drawPause(ctx) {
+    ctx.fillStyle = 'rgba(5, 7, 13, 0.7)';
+    ctx.fillRect(0, 0, VIEW.w, VIEW.h);
+
+    label(ctx, 'PAUSED', VIEW.w / 2, VIEW.h * 0.42, 34, '#8ef6ff', { weight: 800, glow: 20 });
+    label(ctx, 'Esc / P 继续', VIEW.w / 2, VIEW.h * 0.52, 15, '#d6f1ff', { weight: 600 });
+    label(ctx, 'T 返回标题', VIEW.w / 2, VIEW.h * 0.52 + 28, 13, COLORS.faint, { weight: 500 });
   }
 
   drawGameOver(ctx) {

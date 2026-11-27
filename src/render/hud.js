@@ -1,4 +1,4 @@
-import { VIEW, COLORS, FONT } from '../config.js';
+import { VIEW, COLORS, FONT, BOMB } from '../config.js';
 
 export function drawHud(ctx, scene) {
   ctx.textBaseline = 'alphabetic';
@@ -24,6 +24,11 @@ export function drawHud(ctx, scene) {
   ctx.fillStyle = '#ffd9ec';
   ctx.fillText(String(scene.wave).padStart(2, '0'), VIEW.w - 20, 56);
 
+  ctx.textAlign = 'center';
+  ctx.font = `500 11px ${FONT.mono}`;
+  ctx.fillStyle = 'rgba(150, 200, 255, 0.42)';
+  ctx.fillText(scene.diff.name, VIEW.w / 2, 26);
+
   const player = scene.player;
   for (let i = 0; i < player.maxShields; i++) {
     const x = 24 + i * 20;
@@ -47,8 +52,34 @@ export function drawHud(ctx, scene) {
     ctx.restore();
   }
 
+  for (let i = 0; i < BOMB.count; i += 1) {
+    const x = VIEW.w - 30 - i * 18;
+    const y = VIEW.h - 24;
+    const active = i < scene.bombs;
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.beginPath();
+    ctx.moveTo(0, -6);
+    ctx.lineTo(5, 0);
+    ctx.lineTo(0, 6);
+    ctx.lineTo(-5, 0);
+    ctx.closePath();
+    if (active) {
+      ctx.fillStyle = 'rgba(255, 194, 102, 0.9)';
+      ctx.shadowColor = 'rgba(255, 194, 102, 0.9)';
+      ctx.shadowBlur = 8;
+      ctx.fill();
+    } else {
+      ctx.strokeStyle = 'rgba(255, 194, 102, 0.22)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   ctx.textAlign = 'right';
-  ctx.font = `500 11px ${FONT.mono}`;
-  ctx.fillStyle = 'rgba(150, 200, 255, 0.4)';
-  ctx.fillText(scene.diff.name, VIEW.w - 22, VIEW.h - 20);
+  ctx.font = `500 10px ${FONT.mono}`;
+  ctx.fillStyle = 'rgba(150, 200, 255, 0.32)';
+  ctx.fillText('X', VIEW.w - 20, VIEW.h - 42);
 }

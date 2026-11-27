@@ -46,8 +46,16 @@ export const PLAYER = {
 };
 
 export const ENEMY = {
-  hp: 3,
   bulletSpeed: 178,
+  hex: { hp: 3, score: 100 },
+  dart: { hp: 2, score: 80 },
+  turret: { hp: 6, score: 200 },
+};
+
+export const BOMB = {
+  count: 3,
+  damage: 3,
+  invuln: 2,
 };
 
 export const WAVE_SECONDS = 20;

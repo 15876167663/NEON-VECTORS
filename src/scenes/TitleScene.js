@@ -96,7 +96,7 @@ export class TitleScene {
     label(ctx, '移动  WASD · 方向键 · 按住拖动', VIEW.w / 2, VIEW.h * 0.855, 12, COLORS.faint, {
       weight: 500,
     });
-    label(ctx, '射击  自动 · 每 60 秒一个 Boss', VIEW.w / 2, VIEW.h * 0.885, 12, COLORS.faint, {
+    label(ctx, '自动射击 · X 炸弹 · Esc 暂停', VIEW.w / 2, VIEW.h * 0.885, 12, COLORS.faint, {
       weight: 500,
     });
   }
