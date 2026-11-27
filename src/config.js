@@ -81,11 +81,18 @@ export const PICKUP = {
 export const BOSS = {
   baseHp: 170,
   hpStep: 16,
-  hpCap: 380,
+  hpCap: 470,
   firstAt: 60,
   gapAfter: 45,
   score: 2000,
   radius: 46,
+};
+
+export const ENDLESS = {
+  rampStart: 60,
+  spawnFloor: 0.42,
+  spawnRampPerSecond: 0.00045,
+  hexFireFloor: 0.68,
 };
 
 export const AUDIO = {

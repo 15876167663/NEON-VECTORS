@@ -1,4 +1,4 @@
-import { VIEW, COLORS, ENEMY } from '../config.js';
+import { VIEW, COLORS, ENEMY, ENDLESS } from '../config.js';
 import { polygon } from '../core/draw.js';
 import { aimedSpread, downFan, ringBurst, spiralBurst } from '../game/patterns.js';
 
@@ -59,7 +59,10 @@ export class HexEnemy {
 
     this.shootT -= dt;
     if (this.shootT <= 0 && this.y > 40 && this.y < VIEW.h - 200) {
-      this.shootT = Math.max(0.9, 1.5 + Math.random() * 0.5 - scene.time * 0.008);
+      this.shootT = Math.max(
+        ENDLESS.hexFireFloor,
+        1.5 + Math.random() * 0.5 - scene.time * 0.008
+      );
       aimedSpread(scene, this, 3, 0.15);
     }
   }

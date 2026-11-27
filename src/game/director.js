@@ -1,4 +1,4 @@
-import { VIEW } from '../config.js';
+import { VIEW, ENDLESS } from '../config.js';
 import { HexEnemy, DartEnemy, TurretEnemy } from '../entities/enemy.js';
 
 const TABLE = [
@@ -45,5 +45,7 @@ export function spawnEnemy(scene, time) {
 }
 
 export function spawnInterval(time) {
-  return Math.max(0.5, 1.5 - time * 0.016);
+  const base = Math.max(0.5, 1.5 - time * 0.016);
+  const ramp = Math.max(0, time - ENDLESS.rampStart) * ENDLESS.spawnRampPerSecond;
+  return Math.max(ENDLESS.spawnFloor, base - ramp);
 }
