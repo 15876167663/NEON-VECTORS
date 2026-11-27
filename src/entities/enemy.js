@@ -2,6 +2,8 @@ import { VIEW, COLORS, ENEMY } from '../config.js';
 import { polygon } from '../core/draw.js';
 import { aimedSpread, downFan, ringBurst, spiralBurst } from '../game/patterns.js';
 
+let nextId = 1;
+
 function beginShape(ctx, enemy, mirror = 1) {
   const scale = 1 - Math.pow(1 - enemy.spawn, 3);
   ctx.save();
@@ -16,6 +18,7 @@ function tick(enemy, dt) {
 
 export class HexEnemy {
   constructor(x, y, speed) {
+    this.id = nextId++;
     this.kind = 'hex';
     this.x = x;
     this.y = y;
@@ -79,6 +82,7 @@ export class HexEnemy {
 
 export class DartEnemy {
   constructor(side, y) {
+    this.id = nextId++;
     this.kind = 'dart';
     this.x = side > 0 ? -30 : VIEW.w + 30;
     this.y = y;
@@ -139,6 +143,7 @@ export class DartEnemy {
 
 export class TurretEnemy {
   constructor(x, hoverY) {
+    this.id = nextId++;
     this.kind = 'turret';
     this.x = x;
     this.y = -60;

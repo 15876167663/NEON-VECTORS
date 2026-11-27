@@ -1,4 +1,4 @@
-import { VIEW, COLORS, FONT, BOMB } from '../config.js';
+import { VIEW, COLORS, FONT, BOMB, COMBO, PICKUP } from '../config.js';
 
 export function drawHud(ctx, scene) {
   ctx.textBaseline = 'alphabetic';
@@ -24,12 +24,31 @@ export function drawHud(ctx, scene) {
   ctx.fillStyle = '#ffd9ec';
   ctx.fillText(String(scene.wave).padStart(2, '0'), VIEW.w - 20, 56);
 
+  ctx.textAlign = 'left';
+  ctx.font = `500 10px ${FONT.mono}`;
+  ctx.fillStyle = 'rgba(126, 240, 255, 0.55)';
+  ctx.fillText(`WPN LV.${scene.player.weaponLevel}`, 22, 76);
+
   ctx.textAlign = 'center';
   ctx.font = `500 11px ${FONT.mono}`;
   ctx.fillStyle = 'rgba(150, 200, 255, 0.42)';
   ctx.fillText(scene.diff.name, VIEW.w / 2, 26);
 
+  if (scene.mult > 1) {
+    labelCenter(ctx, `×${scene.mult}`, VIEW.w / 2, 46, 24, '#ffd166', 16);
+    const progress = Math.max(0, Math.min(1, scene.comboT / COMBO.baseWindow));
+    ctx.fillStyle = 'rgba(255, 209, 102, 0.18)';
+    ctx.fillRect(VIEW.w / 2 - 34, 60, 68, 2);
+    ctx.fillStyle = 'rgba(255, 209, 102, 0.9)';
+    ctx.fillRect(VIEW.w / 2 - 34, 60, 68 * progress, 2);
+  }
+
   const player = scene.player;
+  ctx.fillStyle = 'rgba(93, 243, 255, 0.16)';
+  ctx.fillRect(24, VIEW.h - 40, 52, 2);
+  ctx.fillStyle = 'rgba(93, 243, 255, 0.75)';
+  ctx.fillRect(24, VIEW.h - 40, 52 * (scene.shieldCharge / PICKUP.shieldChargeMax), 2);
+
   for (let i = 0; i < player.maxShields; i++) {
     const x = 24 + i * 20;
     const y = VIEW.h - 24;
@@ -82,4 +101,16 @@ export function drawHud(ctx, scene) {
   ctx.font = `500 10px ${FONT.mono}`;
   ctx.fillStyle = 'rgba(150, 200, 255, 0.32)';
   ctx.fillText('X', VIEW.w - 20, VIEW.h - 42);
+}
+
+function labelCenter(ctx, str, x, y, size, color, glow) {
+  ctx.save();
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.font = `700 ${size}px ${FONT.mono}`;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = glow;
+  ctx.fillStyle = color;
+  ctx.fillText(str, x, y);
+  ctx.restore();
 }

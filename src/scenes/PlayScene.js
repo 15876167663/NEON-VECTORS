@@ -1,7 +1,10 @@
-import { VIEW, COLORS, DIFFICULTIES, PLAYER, BOMB, WAVE_SECONDS } from '../config.js';
+import { VIEW, COLORS, DIFFICULTIES, BOMB, COMBO, PICKUP, WAVE_SECONDS } from '../config.js';
 import { Player } from '../entities/player.js';
 import { spawnEnemy, spawnInterval } from '../game/director.js';
+import { fireWeapon } from '../game/weapons.js';
+import { Pickup } from '../entities/pickups.js';
 import { spawnBurst, updateParticles, drawParticles } from '../entities/particles.js';
+import { spawnFloater, updateFloaters, drawFloaters } from '../game/floaters.js';
 import { drawPlayerBullets, drawEnemyBullets } from '../entities/bullets.js';
 import { drawHud } from '../render/hud.js';
 import { label } from '../core/draw.js';
@@ -15,9 +18,17 @@ export class PlayScene {
     this.ebullets = [];
     this.enemies = [];
     this.particles = [];
+    this.pickups = [];
+    this.floaters = [];
     this.time = 0;
     this.score = 0;
     this.kills = 0;
+    this.combo = 0;
+    this.comboT = 0;
+    this.mult = 1;
+    this.maxMult = 1;
+    this.maxCombo = 0;
+    this.shieldCharge = 0;
     this.spawnT = 0.9;
     this.shake = 0;
     this.flash = 0;
@@ -91,8 +102,9 @@ export class PlayScene {
     }
   }
 
-  spawnPlayerShot(x, y) {
-    this.bullets.push({ x, y, vy: -PLAYER.bulletSpeed, r: 3.5, dead: false });
+  playerFire(player) {
+    fireWeapon(this, player.x, player.y - 14, player.weaponLevel);
+    spawnBurst(this.particles, player.x, player.y - 16, 2, COLORS.bullet, 80, 0.14, 1.1);
   }
 
   useBomb() {
@@ -117,13 +129,74 @@ export class PlayScene {
     this.enemies = this.enemies.filter((enemy) => !enemy.dead);
   }
 
+  spawnPickup(kind, x, y) {
+    this.pickups.push(new Pickup(kind, x, y));
+  }
+
   killEnemy(enemy) {
     enemy.dead = true;
-    this.score += enemy.score;
+
+    const distance = Math.hypot(enemy.x - this.player.x, enemy.y - this.player.y);
+    const close = distance <= COMBO.proximityRange;
+    const mult = Math.min(
+      COMBO.maxMult + COMBO.proximityBonus,
+      this.mult + (close ? COMBO.proximityBonus : 0)
+    );
+    const gain = enemy.score * mult;
+
+    this.score += gain;
     this.kills += 1;
+    this.combo += 1;
+    this.comboT = COMBO.baseWindow;
+    this.maxCombo = Math.max(this.maxCombo, this.combo);
+    this.mult = Math.min(COMBO.maxMult, 1 + Math.floor(this.combo / COMBO.perLevel));
+    this.maxMult = Math.max(this.maxMult, mult);
+
     this.shake = Math.min(6, this.shake + 3);
     spawnBurst(this.particles, enemy.x, enemy.y, 18, COLORS.enemy, 240, 0.65, 2.6);
     spawnBurst(this.particles, enemy.x, enemy.y, 8, '#ffffff', 120, 0.4, 1.8);
+    spawnFloater(
+      this.floaters,
+      enemy.x,
+      enemy.y - 16,
+      `+${gain}`,
+      close ? '#ffd166' : '#e8fbff',
+      close ? 15 : 12
+    );
+
+    this.spawnPickup('core', enemy.x, enemy.y);
+    if (enemy.kind === 'turret' || this.kills % PICKUP.moduleEveryKills === 0) {
+      this.spawnPickup('module', enemy.x, enemy.y);
+    }
+  }
+
+  collectPickup(pickup) {
+    this.comboT = Math.min(COMBO.maxWindow, this.comboT + COMBO.windowPerCore);
+    spawnBurst(this.particles, pickup.x, pickup.y, 4, '#ffffff', 70, 0.25, 1.4);
+
+    if (pickup.kind === 'module') {
+      if (this.player.weaponLevel < 5) {
+        this.player.weaponLevel += 1;
+        spawnFloater(this.floaters, pickup.x, pickup.y - 12, `武器 Lv.${this.player.weaponLevel}`, '#7ef0ff', 14);
+        this.flash = Math.max(this.flash, 0.25);
+      } else {
+        this.score += 300;
+        spawnFloater(this.floaters, pickup.x, pickup.y - 12, '+300', '#7ef0ff', 13);
+      }
+      return;
+    }
+
+    this.score += 20 * this.mult;
+    this.shieldCharge += 1;
+    if (this.shieldCharge >= PICKUP.shieldChargeMax) {
+      this.shieldCharge = 0;
+      if (this.player.shields < this.player.maxShields) {
+        this.player.shields += 1;
+        spawnFloater(this.floaters, pickup.x, pickup.y - 12, '护盾 +1', '#5df3ff', 14);
+      } else {
+        this.score += 100;
+      }
+    }
   }
 
   hitPlayer() {
@@ -149,17 +222,27 @@ export class PlayScene {
       if (bullet.dead) continue;
       for (const enemy of this.enemies) {
         if (enemy.dead) continue;
+        if (bullet.hits && bullet.hits.has(enemy.id)) continue;
+
         const dx = bullet.x - enemy.x;
         const dy = bullet.y - enemy.y;
         const reach = enemy.r + bullet.r;
-        if (dx * dx + dy * dy <= reach * reach) {
+        if (dx * dx + dy * dy > reach * reach) continue;
+
+        enemy.hp -= 1;
+        enemy.hitFlash = 0.09;
+        spawnBurst(this.particles, bullet.x, bullet.y, 3, '#ffffff', 140, 0.16, 1.5);
+
+        if (bullet.pierce > 0) {
+          bullet.pierce -= 1;
+          if (!bullet.hits) bullet.hits = new Set();
+          bullet.hits.add(enemy.id);
+        } else {
           bullet.dead = true;
-          enemy.hp -= 1;
-          enemy.hitFlash = 0.09;
-          spawnBurst(this.particles, bullet.x, bullet.y, 3, '#ffffff', 140, 0.16, 1.5);
-          if (enemy.hp <= 0) this.killEnemy(enemy);
-          break;
         }
+
+        if (enemy.hp <= 0) this.killEnemy(enemy);
+        if (bullet.dead) break;
       }
     }
 
@@ -195,9 +278,19 @@ export class PlayScene {
     this.time += dt;
     this.shake = this.shake > 0.05 ? this.shake * Math.exp(-5 * dt) : 0;
     this.flash = Math.max(0, this.flash - dt * 2.6);
+    updateParticles(this.particles, dt);
+    updateFloaters(this.floaters, dt);
 
     if (this.phase === 'playing') {
       this.player.update(dt, this.game.input, this);
+
+      if (this.comboT > 0) {
+        this.comboT -= dt;
+        if (this.comboT <= 0) {
+          this.combo = 0;
+          this.mult = 1;
+        }
+      }
 
       this.spawnT -= dt;
       if (this.spawnT <= 0) {
@@ -214,8 +307,18 @@ export class PlayScene {
           enemy.x < VIEW.w + 80
       );
 
-      for (const bullet of this.bullets) bullet.y += bullet.vy * dt;
-      this.bullets = this.bullets.filter((bullet) => bullet.y > -40 && !bullet.dead);
+      for (const bullet of this.bullets) {
+        bullet.x += bullet.vx * dt;
+        bullet.y += bullet.vy * dt;
+      }
+      this.bullets = this.bullets.filter(
+        (bullet) =>
+          !bullet.dead &&
+          bullet.y > -40 &&
+          bullet.y < VIEW.h + 40 &&
+          bullet.x > -40 &&
+          bullet.x < VIEW.w + 40
+      );
 
       for (const bullet of this.ebullets) {
         bullet.x += bullet.vx * dt;
@@ -226,13 +329,23 @@ export class PlayScene {
           bullet.y > -30 && bullet.y < VIEW.h + 30 && bullet.x > -30 && bullet.x < VIEW.w + 30
       );
 
+      for (const pickup of this.pickups) pickup.update(dt, this.player);
+      for (const pickup of this.pickups) {
+        if (pickup.dead) continue;
+        const dx = pickup.x - this.player.x;
+        const dy = pickup.y - this.player.y;
+        if (dx * dx + dy * dy <= PICKUP.collectRange * PICKUP.collectRange) {
+          this.collectPickup(pickup);
+          pickup.dead = true;
+        }
+      }
+      this.pickups = this.pickups.filter((pickup) => !pickup.dead);
+
       this.collide();
     } else if (this.phase === 'dying') {
       this.dyingT -= dt;
       if (this.dyingT <= 0) this.phase = 'over';
     }
-
-    updateParticles(this.particles, dt);
   }
 
   draw(ctx) {
@@ -245,8 +358,10 @@ export class PlayScene {
     drawEnemyBullets(ctx, this.ebullets);
     for (const enemy of this.enemies) enemy.draw(ctx);
     drawPlayerBullets(ctx, this.bullets);
+    for (const pickup of this.pickups) pickup.draw(ctx);
     if (this.phase === 'playing') this.player.draw(ctx);
     drawParticles(ctx, this.particles);
+    drawFloaters(ctx, this.floaters);
     ctx.restore();
 
     this.game.backdrop.drawVignette(ctx);
@@ -275,32 +390,64 @@ export class PlayScene {
   }
 
   drawGameOver(ctx) {
-    ctx.fillStyle = 'rgba(5, 7, 13, 0.78)';
+    ctx.fillStyle = 'rgba(5, 7, 13, 0.8)';
     ctx.fillRect(0, 0, VIEW.w, VIEW.h);
 
-    label(ctx, 'GAME OVER', VIEW.w / 2, VIEW.h * 0.34, 40, '#ff7ab6', { weight: 800, glow: 24 });
-    label(ctx, 'SCORE', VIEW.w / 2, VIEW.h * 0.42, 12, COLORS.dim, { mono: true, weight: 500 });
-    label(ctx, String(this.score).padStart(6, '0'), VIEW.w / 2, VIEW.h * 0.42 + 36, 36, COLORS.hud, {
+    label(ctx, 'GAME OVER', VIEW.w / 2, VIEW.h * 0.3, 40, '#ff7ab6', { weight: 800, glow: 24 });
+    label(ctx, 'SCORE', VIEW.w / 2, VIEW.h * 0.37, 12, COLORS.dim, { mono: true, weight: 500 });
+    label(ctx, String(this.score).padStart(6, '0'), VIEW.w / 2, VIEW.h * 0.37 + 36, 36, COLORS.hud, {
       mono: true,
       weight: 700,
       glow: 16,
     });
 
+    const leftX = VIEW.w / 2 - 118;
+    const rightX = VIEW.w / 2 + 118;
+    const rowY = VIEW.h * 0.49;
+
+    label(ctx, '最高倍率', leftX, rowY, 12, COLORS.faint, { align: 'left', weight: 500 });
+    label(ctx, `×${this.maxMult}`, leftX, rowY + 20, 18, '#ffd166', {
+      align: 'left',
+      mono: true,
+      weight: 700,
+    });
+
+    label(ctx, '最大连击', rightX, rowY, 12, COLORS.faint, { align: 'right', weight: 500 });
+    label(ctx, String(this.maxCombo), rightX, rowY + 20, 18, '#e8fbff', {
+      align: 'right',
+      mono: true,
+      weight: 700,
+    });
+
+    label(ctx, '击毁', leftX, rowY + 50, 12, COLORS.faint, { align: 'left', weight: 500 });
+    label(ctx, String(this.kills), leftX, rowY + 70, 18, '#e8fbff', {
+      align: 'left',
+      mono: true,
+      weight: 700,
+    });
+
+    label(ctx, '武器', rightX, rowY + 50, 12, COLORS.faint, { align: 'right', weight: 500 });
+    label(ctx, `Lv.${this.player.weaponLevel}`, rightX, rowY + 70, 18, '#7ef0ff', {
+      align: 'right',
+      mono: true,
+      weight: 700,
+    });
+
     label(
       ctx,
-      `难度 ${this.diff.name} · 波次 ${this.wave} · 击毁 ${this.kills}`,
+      `难度 ${this.diff.name} · 到达波次 ${this.wave}`,
       VIEW.w / 2,
-      VIEW.h * 0.53,
-      13,
-      'rgba(170, 215, 255, 0.62)',
+      rowY + 108,
+      12,
+      'rgba(170, 215, 255, 0.55)',
       { weight: 500 }
     );
 
     const blink = 0.4 + 0.6 * Math.abs(Math.sin(this.time * 2.2));
-    label(ctx, 'R / 空格 / 点击 重开', VIEW.w / 2, VIEW.h * 0.63, 16, '#d6f1ff', {
+    label(ctx, 'R / 空格 / 点击 重开', VIEW.w / 2, VIEW.h * 0.71, 16, '#d6f1ff', {
       weight: 600,
       alpha: blink,
     });
-    label(ctx, 'Esc 返回标题', VIEW.w / 2, VIEW.h * 0.63 + 30, 13, COLORS.faint, { weight: 500 });
+    label(ctx, 'Esc 返回标题', VIEW.w / 2, VIEW.h * 0.71 + 30, 13, COLORS.faint, { weight: 500 });
   }
 }

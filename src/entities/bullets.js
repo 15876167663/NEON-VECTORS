@@ -10,8 +10,11 @@ export function drawPlayerBullets(ctx, bullets) {
   ctx.shadowBlur = 14;
   ctx.beginPath();
   for (const bullet of bullets) {
-    ctx.moveTo(bullet.x, bullet.y - 12);
-    ctx.lineTo(bullet.x, bullet.y + 5);
+    const length = Math.hypot(bullet.vx, bullet.vy) || 1;
+    const dx = bullet.vx / length;
+    const dy = bullet.vy / length;
+    ctx.moveTo(bullet.x - dx * 16, bullet.y - dy * 16);
+    ctx.lineTo(bullet.x + dx * 6, bullet.y + dy * 6);
   }
   ctx.stroke();
   ctx.restore();

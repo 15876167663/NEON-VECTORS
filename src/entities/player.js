@@ -9,6 +9,7 @@ export class Player {
     this.maxShields = diff.shields;
     this.invuln = 0;
     this.fireT = 0;
+    this.weaponLevel = 1;
   }
 
   update(dt, input, scene) {
@@ -39,8 +40,7 @@ export class Player {
 
     this.fireT -= dt;
     while (this.fireT <= 0) {
-      scene.spawnPlayerShot(this.x - 7, this.y - 14);
-      scene.spawnPlayerShot(this.x + 7, this.y - 14);
+      scene.playerFire(this);
       this.fireT += 1 / PLAYER.fireRate;
     }
   }

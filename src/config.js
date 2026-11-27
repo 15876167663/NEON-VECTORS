@@ -58,4 +58,26 @@ export const BOMB = {
   invuln: 2,
 };
 
+export const COMBO = {
+  baseWindow: 3,
+  windowPerCore: 1.5,
+  maxWindow: 6,
+  perLevel: 3,
+  maxMult: 8,
+  proximityRange: 90,
+  proximityBonus: 1,
+};
+
+export const WEAPON = {
+  maxLevel: 5,
+};
+
+export const PICKUP = {
+  magnetRange: 110,
+  collectRange: 18,
+  life: 12,
+  moduleEveryKills: 8,
+  shieldChargeMax: 10,
+};
+
 export const WAVE_SECONDS = 20;
