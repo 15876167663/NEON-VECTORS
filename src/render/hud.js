@@ -130,7 +130,7 @@ export function drawBossBar(ctx, scene) {
   const x = (VIEW.w - width) / 2;
   const y = 92;
   const ratio = Math.max(0, boss.hp / boss.maxHp);
-  const color = boss.phase === 1 ? '#ff4d9d' : boss.phase === 2 ? '#ffc266' : '#ff2d55';
+  const color = boss.color;
 
   ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
   ctx.fillRect(x, y, width, height);
@@ -149,6 +149,6 @@ export function drawBossBar(ctx, scene) {
   ctx.textAlign = 'right';
   ctx.font = `500 10px ${FONT.mono}`;
   ctx.fillStyle = 'rgba(150, 200, 255, 0.55)';
-  ctx.fillText(`BOSS ${boss.index}  PHASE ${boss.phase}`, x + width, y - 7);
+  ctx.fillText(`BOSS ${boss.index} · ${boss.name} · PHASE ${boss.phase}`, x + width, y - 7);
 }
 

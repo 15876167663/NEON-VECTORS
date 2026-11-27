@@ -485,10 +485,32 @@ export class PlayScene {
           bullet.x < VIEW.w + 40
       );
 
+      const spawned = [];
       for (const bullet of this.ebullets) {
         bullet.x += bullet.vx * step;
         bullet.y += bullet.vy * step;
+
+        if (bullet.split && !bullet.split.done) {
+          bullet.split.age += step;
+          if (bullet.split.age >= bullet.split.delay) {
+            bullet.split.done = true;
+            const base = Math.atan2(bullet.vy, bullet.vx);
+            const speed = Math.hypot(bullet.vx, bullet.vy) * bullet.split.speed;
+            for (let i = 0; i < bullet.split.count; i += 1) {
+              const offset = (i - (bullet.split.count - 1) / 2) * bullet.split.spread;
+              spawned.push({
+                x: bullet.x,
+                y: bullet.y,
+                vx: Math.cos(base + offset) * speed,
+                vy: Math.sin(base + offset) * speed,
+                r: 3.4,
+              });
+            }
+            spawnBurst(this.particles, bullet.x, bullet.y, 3, COLORS.ebullet, 60, 0.25, 1.4);
+          }
+        }
       }
+      if (spawned.length) this.ebullets.push(...spawned);
       this.ebullets = this.ebullets.filter(
         (bullet) =>
           bullet.y > -30 && bullet.y < VIEW.h + 30 && bullet.x > -30 && bullet.x < VIEW.w + 30
@@ -553,7 +575,7 @@ export class PlayScene {
         glow: 26,
         alpha,
       });
-      label(ctx, `BOSS ${this.bossIndex} 接近`, VIEW.w / 2, VIEW.h * 0.34 + 38, 13, '#ffd9ec', {
+      label(ctx, `BOSS ${this.bossIndex} · ${this.boss?.name || ''}`, VIEW.w / 2, VIEW.h * 0.34 + 38, 13, '#ffd9ec', {
         weight: 500,
         alpha,
       });
