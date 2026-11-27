@@ -77,3 +77,5 @@ src/
 ## 版本
 
 当前 v1.5：重调无尽后期出怪与弹幕节奏、Boss 血量上限，三把可选武器与独立弹道保持可用。完整路线图见 [DESIGN.md](./DESIGN.md)。
+
+项目复盘与技术总结见 [SUMMARY.md](./SUMMARY.md)。
