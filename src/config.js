@@ -82,8 +82,8 @@ export const PICKUP = {
 
 export const BOSS = {
   baseHp: 170,
-  hpStep: 20,
-  hpCap: 420,
+  hpStep: 16,
+  hpCap: 380,
   firstAt: 60,
   gapAfter: 45,
   score: 2000,
