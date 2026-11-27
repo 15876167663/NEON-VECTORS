@@ -5,6 +5,7 @@ import { Input } from '../input.js';
 import { Backdrop } from '../render/backdrop.js';
 import { TitleScene } from '../scenes/TitleScene.js';
 import { PlayScene } from '../scenes/PlayScene.js';
+import { SettingsScene } from '../scenes/SettingsScene.js';
 
 export class Game {
   constructor(canvas) {
@@ -36,6 +37,10 @@ export class Game {
 
   toTitle() {
     this.setScene(new TitleScene(this));
+  }
+
+  toSettings() {
+    this.setScene(new SettingsScene(this));
   }
 
   startGame(difficultyId) {

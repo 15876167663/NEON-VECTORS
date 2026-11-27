@@ -1,4 +1,5 @@
 import { AUDIO } from './config.js';
+import { settings, saveSettings } from './settings.js';
 
 const CHORDS = [
   [57, 60, 64],
@@ -16,12 +17,8 @@ export class AudioEngine {
     this.musicBus = null;
     this.sfxBus = null;
     this.noise = null;
-    this.muted = false;
-    try {
-      this.muted = localStorage.getItem(AUDIO.storageKey) === '1';
-    } catch {
-      this.muted = false;
-    }
+    this.muted = settings.muted;
+    this.volume = settings.volume;
     this.musicOn = false;
     this.intensity = 1;
     this.step = 0;
@@ -53,7 +50,7 @@ export class AudioEngine {
     limiter.connect(ctx.destination);
 
     this.master = ctx.createGain();
-    this.master.gain.value = this.muted ? 0 : AUDIO.master;
+    this.master.gain.value = this.muted ? 0 : AUDIO.master * this.volume;
     this.master.connect(limiter);
 
     const reverb = ctx.createConvolver();
@@ -99,18 +96,41 @@ export class AudioEngine {
   }
 
   toggleMute() {
-    this.muted = !this.muted;
-    try {
-      localStorage.setItem(AUDIO.storageKey, this.muted ? '1' : '0');
-    } catch {
-      /* 忽略存储失败 */
-    }
+    this.setMuted(!this.muted);
+    return this.muted;
+  }
+
+  setMuted(muted) {
+    this.muted = muted;
+    settings.muted = muted;
+    saveSettings();
     if (this.master) {
       const now = this.ctx.currentTime;
       this.master.gain.cancelScheduledValues(now);
-      this.master.gain.setTargetAtTime(this.muted ? 0 : AUDIO.master, now, 0.03);
+      this.master.gain.setTargetAtTime(muted ? 0 : AUDIO.master * this.volume, now, 0.03);
     }
-    return this.muted;
+  }
+
+  setVolume(value) {
+    this.volume = Math.max(0, Math.min(1, value));
+    settings.volume = this.volume;
+    saveSettings();
+    if (this.master && !this.muted) {
+      const now = this.ctx.currentTime;
+      this.master.gain.cancelScheduledValues(now);
+      this.master.gain.setTargetAtTime(AUDIO.master * this.volume, now, 0.03);
+    }
+  }
+
+  setSfx(enabled) {
+    settings.sfx = enabled;
+    saveSettings();
+  }
+
+  setMusic(enabled) {
+    settings.music = enabled;
+    saveSettings();
+    if (!enabled) this.stopMusic();
   }
 
   tone(type, from, to, duration, gain, when, bus = this.sfxBus, attack = 0.004) {
@@ -152,7 +172,7 @@ export class AudioEngine {
   }
 
   sfx(name, opt = {}) {
-    if (!this.ctx || this.muted) return;
+    if (!this.ctx || this.muted || !settings.sfx) return;
     const t = this.ctx.currentTime;
 
     switch (name) {
@@ -221,7 +241,7 @@ export class AudioEngine {
 
   startMusic(intensity = 1) {
     this.intensity = intensity;
-    if (!this.ctx || this.musicOn) return;
+    if (!this.ctx || this.musicOn || !settings.music) return;
     this.musicOn = true;
     this.step = 0;
     this.nextTime = this.ctx.currentTime + 0.08;

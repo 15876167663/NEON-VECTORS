@@ -81,8 +81,9 @@ export const PICKUP = {
 };
 
 export const BOSS = {
-  baseHp: 140,
-  hpStep: 70,
+  baseHp: 170,
+  hpStep: 20,
+  hpCap: 420,
   firstAt: 60,
   gapAfter: 45,
   score: 2000,
@@ -90,7 +91,6 @@ export const BOSS = {
 };
 
 export const AUDIO = {
-  storageKey: 'neon-vectors:muted',
   master: 0.85,
   sfx: 0.9,
   music: 0.5,

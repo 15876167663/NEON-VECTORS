@@ -34,10 +34,25 @@ export class TitleScene {
       this.index = 1;
     } else if (key === ' ' || key === 'enter') {
       this.start(CARDS[this.index].id);
+    } else if (key === 's') {
+      this.game.audio?.sfx('ui');
+      this.game.toSettings();
     }
   }
 
   pointerDown(pointer) {
+    const settings = this.settingRect();
+    if (
+      pointer.x >= settings.x &&
+      pointer.x <= settings.x + settings.w &&
+      pointer.y >= settings.y &&
+      pointer.y <= settings.y + settings.h
+    ) {
+      this.game.audio?.sfx('ui');
+      this.game.toSettings();
+      return;
+    }
+
     for (let i = 0; i < CARDS.length; i++) {
       const rect = this.cardRect(i);
       const inside =
@@ -63,6 +78,10 @@ export class TitleScene {
     const gap = 24;
     const x0 = (VIEW.w - (w * 2 + gap)) / 2;
     return { x: x0 + index * (w + gap), y: 438, w, h };
+  }
+
+  settingRect() {
+    return { x: VIEW.w - 96, y: 20, w: 76, h: 30 };
   }
 
   draw(ctx) {
@@ -96,6 +115,7 @@ export class TitleScene {
     label(ctx, '选择难度', VIEW.w / 2, 412, 12, COLORS.dim, { weight: 500, mono: true });
 
     for (let i = 0; i < CARDS.length; i++) this.drawCard(ctx, i);
+    this.drawSettingsButton(ctx);
 
     const blink = 0.4 + 0.6 * Math.abs(Math.sin(this.time * 2));
     label(ctx, '← → 切换 · 空格 / 点击开始', VIEW.w / 2, 600, 15, '#d6f1ff', {
@@ -107,8 +127,24 @@ export class TitleScene {
     label(ctx, '移动  WASD · 方向键 · 按住拖动', VIEW.w / 2, VIEW.h * 0.855, 12, COLORS.faint, {
       weight: 500,
     });
-    label(ctx, '自动射击 · X 炸弹 · Esc 暂停 · M 静音', VIEW.w / 2, VIEW.h * 0.885, 12, COLORS.faint, {
+    label(ctx, '自动射击 · X 炸弹 · Esc 暂停 · M 静音 · S 设置', VIEW.w / 2, VIEW.h * 0.885, 12, COLORS.faint, {
       weight: 500,
+    });
+  }
+
+  drawSettingsButton(ctx) {
+    const rect = this.settingRect();
+    ctx.save();
+    roundRect(ctx, rect.x, rect.y, rect.w, rect.h, 8);
+    ctx.fillStyle = 'rgba(10, 18, 32, 0.75)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(120, 180, 255, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+    label(ctx, '设置 S', rect.x + rect.w / 2, rect.y + rect.h / 2, 11, 'rgba(180, 220, 255, 0.7)', {
+      weight: 600,
+      mono: true,
     });
   }
 

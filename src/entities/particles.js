@@ -1,7 +1,10 @@
+import { isLowQuality } from '../settings.js';
+
 export function spawnBurst(list, x, y, count, color, speed, life, size) {
   if (list.length > 600) return;
 
-  for (let i = 0; i < count; i++) {
+  const total = isLowQuality() ? Math.ceil(count * 0.45) : count;
+  for (let i = 0; i < total; i++) {
     const angle = Math.random() * Math.PI * 2;
     const velocity = speed * (0.25 + Math.random() * 0.75);
     const span = life * (0.6 + Math.random() * 0.6);

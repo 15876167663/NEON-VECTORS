@@ -9,6 +9,7 @@ import { spawnFloater, updateFloaters, drawFloaters } from '../game/floaters.js'
 import { drawPlayerBullets, drawEnemyBullets } from '../entities/bullets.js';
 import { drawHud, drawBossBar } from '../render/hud.js';
 import { label } from '../core/draw.js';
+import { vibrate } from '../settings.js';
 
 export class PlayScene {
   constructor(game, difficultyId) {
@@ -79,14 +80,26 @@ export class PlayScene {
       return;
     }
 
-    if (this.phase !== 'playing' || this.paused) {
+    if (this.paused) {
+      this.paused = false;
+      this.game.audio?.startMusic(this.boss ? 2 : 1);
       this.pointerActive = false;
       return;
     }
 
-    const bombLeft = VIEW.w - 96;
-    const bombTop = VIEW.h - 46;
-    if (pointer.x >= bombLeft && pointer.y >= bombTop) {
+    if (this.phase !== 'playing') {
+      this.pointerActive = false;
+      return;
+    }
+
+    if (pointer.x >= VIEW.w - 52 && pointer.y >= 56 && pointer.y <= 96) {
+      this.paused = true;
+      this.game.audio?.stopMusic();
+      this.pointerActive = false;
+      return;
+    }
+
+    if (pointer.x >= VIEW.w - 116 && pointer.y >= VIEW.h - 64) {
       this.useBomb();
       this.pointerActive = false;
       return;
@@ -137,6 +150,7 @@ export class PlayScene {
 
     this.bombs -= 1;
     this.game.audio?.sfx('bomb');
+    vibrate([28, 36, 64]);
     this.flash = 1;
     this.shake = 18;
     this.player.invuln = Math.max(this.player.invuln, BOMB.invuln);
@@ -188,6 +202,7 @@ export class PlayScene {
 
   onBossDeath(boss) {
     this.game.audio?.sfx('bossDown');
+    vibrate([40, 30, 90]);
     this.game.audio?.setIntensity(1);
     this.hitStop = Math.max(this.hitStop, JUICE.phaseStop);
     this.slowT = JUICE.deathSlow;
@@ -301,6 +316,7 @@ export class PlayScene {
 
     player.shields -= 1;
     this.game.audio?.sfx('hurt');
+    vibrate(55);
     this.shake = Math.min(14, this.shake + 9);
     spawnBurst(this.particles, player.x, player.y, 14, COLORS.player, 200, 0.45, 2);
 
@@ -561,7 +577,7 @@ export class PlayScene {
     ctx.fillRect(0, 0, VIEW.w, VIEW.h);
 
     label(ctx, 'PAUSED', VIEW.w / 2, VIEW.h * 0.42, 34, '#8ef6ff', { weight: 800, glow: 20 });
-    label(ctx, 'Esc / P 继续', VIEW.w / 2, VIEW.h * 0.52, 15, '#d6f1ff', { weight: 600 });
+    label(ctx, 'Esc / P / 点击 继续', VIEW.w / 2, VIEW.h * 0.52, 15, '#d6f1ff', { weight: 600 });
     label(ctx, 'T 返回标题', VIEW.w / 2, VIEW.h * 0.52 + 28, 13, COLORS.faint, { weight: 500 });
   }
 

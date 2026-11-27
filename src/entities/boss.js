@@ -11,7 +11,7 @@ export class Boss {
     this.y = -120;
     this.targetY = 150;
     this.r = BOSS.radius;
-    this.maxHp = BOSS.baseHp + (index - 1) * BOSS.hpStep;
+    this.maxHp = Math.min(BOSS.hpCap, BOSS.baseHp + (index - 1) * BOSS.hpStep);
     this.hp = this.maxHp;
     this.phase = 1;
     this.state = 'entering';

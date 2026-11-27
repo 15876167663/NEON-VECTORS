@@ -112,6 +112,13 @@ export function drawHud(ctx, scene) {
   ctx.font = `500 10px ${FONT.mono}`;
   ctx.fillStyle = 'rgba(150, 200, 255, 0.32)';
   ctx.fillText('X', VIEW.w - 20, VIEW.h - 42);
+
+  ctx.strokeStyle = 'rgba(150, 200, 255, 0.26)';
+  ctx.lineWidth = 1;
+  ctx.strokeRect(VIEW.w - 50, 58, 36, 34);
+  ctx.fillStyle = 'rgba(150, 200, 255, 0.55)';
+  ctx.fillRect(VIEW.w - 43, 66, 4, 18);
+  ctx.fillRect(VIEW.w - 35, 66, 4, 18);
 }
 
 export function drawBossBar(ctx, scene) {

@@ -20,9 +20,22 @@
 | 动作 | 键鼠 | 触屏 |
 | --- | --- | --- |
 | 移动 | `WASD` / 方向键 | 按住拖动 |
-| 开始 / 重开 | `空格` / `Enter` | 点击 |
-| 返回标题 | `Esc` | — |
+| 开始 / 重开 | `空格` / `Enter` / `R` | 点击 |
+| 暂停 | `Esc` / `P` | 右上角暂停按钮 |
+| 炸弹 | `X` / `Shift` | 右下角炸弹区 |
+| 设置 | `S` | 点击右上角「设置」 |
+| 返回标题 | `Esc` | 点击「返回」 |
 | 静音 | `M` | — |
+
+## 设置
+
+标题页按 `S` 或点击右上角「设置」进入，全部配置保存在本地：
+
+- 主音量 0–100%
+- 音效 / BGM 独立开关
+- 震动开关（移动端）
+- 画质高 / 低（低画质减少粒子与背景星点）
+- 恢复默认
 
 ## 开发
 
@@ -31,6 +44,12 @@ npm install
 npm run dev      # 本地开发
 npm run build    # 产出 dist/
 ```
+
+## 部署
+
+推送到 `main` 后，GitHub Actions 会自动构建并发布到 GitHub Pages。Vite 使用相对路径 `base: './'`，可直接部署到任意子目录。
+
+在线试玩：`https://15876167663.github.io/NEON-VECTORS/`
 
 ## 目录结构
 
@@ -42,11 +61,14 @@ src/
   audio.js           WebAudio 音效与合成 BGM
   core/draw.js       绘制工具
   game/Game.js       场景调度
+  game/director.js   出怪导演与波次
+  game/weapons.js    武器弹道
   entities/          玩家、敌人、子弹、粒子
   render/            背景与 HUD
-  scenes/            标题页、战斗页
+  settings.js        本地设置与震动
+  scenes/            标题、设置、战斗
 ```
 
 ## 版本
 
-当前 v0.5：程序化音效与 BGM、命中定格、击杀慢动作、开火预警、UI 动效。完整路线图见 [DESIGN.md](./DESIGN.md)。
+当前 v1.0：数值平衡、设置面板、移动端适配与 GitHub Pages 部署。完整路线图见 [DESIGN.md](./DESIGN.md)。

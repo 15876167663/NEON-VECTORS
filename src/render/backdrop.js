@@ -1,4 +1,5 @@
 import { VIEW, COLORS } from '../config.js';
+import { isLowQuality } from '../settings.js';
 
 export class Backdrop {
   constructor() {
@@ -31,7 +32,9 @@ export class Backdrop {
 
   update(dt) {
     this.scroll += 30 * dt;
-    for (const star of this.stars) {
+    const total = isLowQuality() ? Math.ceil(this.stars.length / 2) : this.stars.length;
+    for (let i = 0; i < total; i += 1) {
+      const star = this.stars[i];
       star.y += (18 + star.z * 95) * dt;
       if (star.y > VIEW.h + 4) {
         star.y = -4;
