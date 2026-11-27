@@ -103,6 +103,37 @@ export function drawHud(ctx, scene) {
   ctx.fillText('X', VIEW.w - 20, VIEW.h - 42);
 }
 
+export function drawBossBar(ctx, scene) {
+  const boss = scene.boss;
+  if (!boss) return;
+
+  const width = 340;
+  const height = 6;
+  const x = (VIEW.w - width) / 2;
+  const y = 92;
+  const ratio = Math.max(0, boss.hp / boss.maxHp);
+  const color = boss.phase === 1 ? '#ff4d9d' : boss.phase === 2 ? '#ffc266' : '#ff2d55';
+
+  ctx.fillStyle = 'rgba(255, 255, 255, 0.07)';
+  ctx.fillRect(x, y, width, height);
+
+  ctx.save();
+  ctx.fillStyle = color;
+  ctx.shadowColor = color;
+  ctx.shadowBlur = 10;
+  ctx.fillRect(x, y, width * ratio, height);
+  ctx.restore();
+
+  ctx.fillStyle = 'rgba(5, 7, 13, 0.75)';
+  ctx.fillRect(x + width / 3 - 1, y, 2, height);
+  ctx.fillRect(x + (width * 2) / 3 - 1, y, 2, height);
+
+  ctx.textAlign = 'right';
+  ctx.font = `500 10px ${FONT.mono}`;
+  ctx.fillStyle = 'rgba(150, 200, 255, 0.55)';
+  ctx.fillText(`BOSS ${boss.index}  PHASE ${boss.phase}`, x + width, y - 7);
+}
+
 function labelCenter(ctx, str, x, y, size, color, glow) {
   ctx.save();
   ctx.textAlign = 'center';

@@ -78,7 +78,7 @@ export class TitleScene {
 
     label(ctx, 'NEON', VIEW.w / 2, VIEW.h * 0.27, 62, '#8ef6ff', { weight: 800, glow: 28 });
     label(ctx, 'VECTORS', VIEW.w / 2, VIEW.h * 0.27 + 56, 40, '#ff8fc4', { weight: 700, glow: 22 });
-    label(ctx, '几何弹幕 · 无尽挑战', VIEW.w / 2, VIEW.h * 0.43, 13, 'rgba(170, 215, 255, 0.6)', {
+    label(ctx, '几何弹幕 · 每 60 秒 Boss', VIEW.w / 2, VIEW.h * 0.43, 13, 'rgba(170, 215, 255, 0.6)', {
       weight: 500,
     });
 

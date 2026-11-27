@@ -1,12 +1,13 @@
-import { VIEW, COLORS, DIFFICULTIES, BOMB, COMBO, PICKUP, WAVE_SECONDS } from '../config.js';
+import { VIEW, COLORS, DIFFICULTIES, BOMB, COMBO, PICKUP, BOSS, WAVE_SECONDS } from '../config.js';
 import { Player } from '../entities/player.js';
+import { Boss } from '../entities/boss.js';
 import { spawnEnemy, spawnInterval } from '../game/director.js';
 import { fireWeapon } from '../game/weapons.js';
 import { Pickup } from '../entities/pickups.js';
 import { spawnBurst, updateParticles, drawParticles } from '../entities/particles.js';
 import { spawnFloater, updateFloaters, drawFloaters } from '../game/floaters.js';
 import { drawPlayerBullets, drawEnemyBullets } from '../entities/bullets.js';
-import { drawHud } from '../render/hud.js';
+import { drawHud, drawBossBar } from '../render/hud.js';
 import { label } from '../core/draw.js';
 
 export class PlayScene {
@@ -38,6 +39,12 @@ export class PlayScene {
     this.dyingT = 0;
     this.pointerActive = false;
     this.onVisibility = null;
+    this.boss = null;
+    this.bossIndex = 0;
+    this.nextBossAt = BOSS.firstAt;
+    this.bossWarnT = 0;
+    this.phaseBannerT = 0;
+    this.phaseText = '';
   }
 
   get wave() {
@@ -131,6 +138,61 @@ export class PlayScene {
 
   spawnPickup(kind, x, y) {
     this.pickups.push(new Pickup(kind, x, y));
+  }
+
+  spawnBoss() {
+    for (const enemy of this.enemies) {
+      spawnBurst(this.particles, enemy.x, enemy.y, 8, COLORS.enemy, 180, 0.5, 2);
+    }
+    this.enemies.length = 0;
+
+    this.bossIndex += 1;
+    this.boss = new Boss(this.bossIndex);
+    this.bossWarnT = 2.2;
+    this.shake = 10;
+    this.flash = 0.45;
+  }
+
+  onBossPhase(boss) {
+    this.ebullets.length = 0;
+    this.flash = 0.55;
+    this.shake = 12;
+    this.phaseBannerT = 1.4;
+    this.phaseText = `PHASE ${boss.phase}`;
+    boss.targetY = 120 + Math.random() * 70;
+    spawnBurst(this.particles, boss.x, boss.y, 36, '#ffffff', 260, 0.8, 2.6);
+  }
+
+  onBossDeath(boss) {
+    const gain = BOSS.score * boss.index * this.mult;
+    this.score += gain;
+    this.shake = 20;
+    this.flash = 1;
+    this.ebullets.length = 0;
+    this.comboT = COMBO.maxWindow;
+
+    for (let i = 0; i < 7; i += 1) {
+      spawnBurst(
+        this.particles,
+        boss.x + (Math.random() - 0.5) * 70,
+        boss.y + (Math.random() - 0.5) * 60,
+        18,
+        i % 2 ? '#ffffff' : COLORS.enemy,
+        300,
+        0.95,
+        3
+      );
+    }
+    for (let i = 0; i < 6; i += 1) {
+      this.spawnPickup('core', boss.x + (Math.random() - 0.5) * 90, boss.y + (Math.random() - 0.5) * 40);
+    }
+    for (let i = 0; i < 3; i += 1) {
+      this.spawnPickup('module', boss.x + (Math.random() - 0.5) * 90, boss.y + (Math.random() - 0.5) * 40);
+    }
+    spawnFloater(this.floaters, boss.x, boss.y - 10, `BOSS +${gain}`, '#ff7ab6', 18);
+
+    this.nextBossAt = this.time + BOSS.gapAfter;
+    this.spawnT = 1.4;
   }
 
   killEnemy(enemy) {
@@ -249,6 +311,21 @@ export class PlayScene {
     this.bullets = this.bullets.filter((bullet) => !bullet.dead);
     this.enemies = this.enemies.filter((enemy) => !enemy.dead);
 
+    if (this.boss && this.boss.state === 'fighting') {
+      for (const bullet of this.bullets) {
+        if (bullet.dead) continue;
+        const dx = bullet.x - this.boss.x;
+        const dy = bullet.y - this.boss.y;
+        const reach = this.boss.r + bullet.r;
+        if (dx * dx + dy * dy > reach * reach) continue;
+
+        bullet.dead = true;
+        this.boss.damage(1, this);
+        spawnBurst(this.particles, bullet.x, bullet.y, 2, '#ffffff', 130, 0.15, 1.4);
+      }
+      this.bullets = this.bullets.filter((bullet) => !bullet.dead);
+    }
+
     if (this.phase !== 'playing') return;
 
     for (const bullet of this.ebullets) {
@@ -268,6 +345,15 @@ export class PlayScene {
       if (dx * dx + dy * dy <= reach * reach) {
         this.hitPlayer();
         return;
+      }
+    }
+
+    if (this.boss && this.boss.state !== 'dying') {
+      const dx = this.boss.x - this.player.x;
+      const dy = this.boss.y - this.player.y;
+      const reach = this.player.radius + this.boss.r * 0.8;
+      if (dx * dx + dy * dy <= reach * reach) {
+        this.hitPlayer();
       }
     }
   }
@@ -292,11 +378,21 @@ export class PlayScene {
         }
       }
 
-      this.spawnT -= dt;
-      if (this.spawnT <= 0) {
-        spawnEnemy(this, this.time);
-        this.spawnT = spawnInterval(this.time) * this.diff.spawnScale * (0.8 + Math.random() * 0.4);
+      if (this.boss) {
+        this.boss.update(dt, this);
+        if (this.boss.dead) this.boss = null;
+      } else if (this.time >= this.nextBossAt) {
+        this.spawnBoss();
+      } else {
+        this.spawnT -= dt;
+        if (this.spawnT <= 0) {
+          spawnEnemy(this, this.time);
+          this.spawnT = spawnInterval(this.time) * this.diff.spawnScale * (0.8 + Math.random() * 0.4);
+        }
       }
+
+      if (this.bossWarnT > 0) this.bossWarnT = Math.max(0, this.bossWarnT - dt);
+      if (this.phaseBannerT > 0) this.phaseBannerT = Math.max(0, this.phaseBannerT - dt);
 
       for (const enemy of this.enemies) enemy.update(dt, this);
       this.enemies = this.enemies.filter(
@@ -357,6 +453,7 @@ export class PlayScene {
     this.game.backdrop.draw(ctx);
     drawEnemyBullets(ctx, this.ebullets);
     for (const enemy of this.enemies) enemy.draw(ctx);
+    if (this.boss) this.boss.draw(ctx);
     drawPlayerBullets(ctx, this.bullets);
     for (const pickup of this.pickups) pickup.draw(ctx);
     if (this.phase === 'playing') this.player.draw(ctx);
@@ -376,6 +473,30 @@ export class PlayScene {
     }
 
     if (this.phase !== 'over') drawHud(ctx, this);
+    if (this.boss) drawBossBar(ctx, this);
+
+    if (this.phase === 'playing' && this.bossWarnT > 0) {
+      const alpha = 0.45 + 0.55 * Math.abs(Math.sin(this.bossWarnT * 7));
+      label(ctx, 'WARNING', VIEW.w / 2, VIEW.h * 0.34, 42, '#ff7ab6', {
+        weight: 800,
+        glow: 26,
+        alpha,
+      });
+      label(ctx, `BOSS ${this.bossIndex} 接近`, VIEW.w / 2, VIEW.h * 0.34 + 38, 13, '#ffd9ec', {
+        weight: 500,
+        alpha,
+      });
+    }
+
+    if (this.phase === 'playing' && this.phaseBannerT > 0) {
+      const alpha = Math.min(1, this.phaseBannerT / 0.4);
+      label(ctx, this.phaseText, VIEW.w / 2, VIEW.h * 0.3, 30, '#ffd166', {
+        weight: 800,
+        glow: 20,
+        alpha,
+      });
+    }
+
     if (this.paused) this.drawPause(ctx);
     if (this.phase === 'over') this.drawGameOver(ctx);
   }

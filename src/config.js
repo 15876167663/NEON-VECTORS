@@ -80,4 +80,13 @@ export const PICKUP = {
   shieldChargeMax: 10,
 };
 
+export const BOSS = {
+  baseHp: 140,
+  hpStep: 70,
+  firstAt: 60,
+  gapAfter: 45,
+  score: 2000,
+  radius: 46,
+};
+
 export const WAVE_SECONDS = 20;
