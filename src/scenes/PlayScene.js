@@ -1,4 +1,4 @@
-import { VIEW, COLORS, DIFFICULTIES, BOMB, COMBO, PICKUP, BOSS, WAVE_SECONDS } from '../config.js';
+import { VIEW, COLORS, DIFFICULTIES, BOMB, COMBO, PICKUP, BOSS, JUICE, WAVE_SECONDS } from '../config.js';
 import { Player } from '../entities/player.js';
 import { Boss } from '../entities/boss.js';
 import { spawnEnemy, spawnInterval } from '../game/director.js';
@@ -45,6 +45,11 @@ export class PlayScene {
     this.bossWarnT = 0;
     this.phaseBannerT = 0;
     this.phaseText = '';
+    this.hitStop = 0;
+    this.slowT = 0;
+    this.displayScore = 0;
+    this.multPulse = 0;
+    this.overT = 0;
   }
 
   get wave() {
@@ -53,14 +58,19 @@ export class PlayScene {
 
   enter() {
     this.onVisibility = () => {
-      if (document.hidden && this.phase === 'playing') this.paused = true;
+      if (document.hidden && this.phase === 'playing') {
+        this.paused = true;
+        this.game.audio?.stopMusic();
+      }
     };
     document.addEventListener('visibilitychange', this.onVisibility);
+    this.game.audio?.startMusic(1);
   }
 
   exit() {
     this.pointerActive = false;
     if (this.onVisibility) document.removeEventListener('visibilitychange', this.onVisibility);
+    this.game.audio?.stopMusic();
   }
 
   pointerDown(pointer) {
@@ -97,13 +107,20 @@ export class PlayScene {
     }
 
     if (this.paused) {
-      if (key === 'escape' || key === 'p' || key === ' ') this.paused = false;
-      else if (key === 't') this.game.toTitle();
+      if (key === 'escape' || key === 'p' || key === ' ') {
+        this.paused = false;
+        this.game.audio?.startMusic(this.boss ? 2 : 1);
+      } else if (key === 't') {
+        this.game.toTitle();
+      }
       return;
     }
 
     if (key === 'escape' || key === 'p') {
-      if (this.phase === 'playing') this.paused = true;
+      if (this.phase === 'playing') {
+        this.paused = true;
+        this.game.audio?.stopMusic();
+      }
     } else if (key === 'x' || key === 'shift') {
       this.useBomb();
     }
@@ -112,12 +129,14 @@ export class PlayScene {
   playerFire(player) {
     fireWeapon(this, player.x, player.y - 14, player.weaponLevel);
     spawnBurst(this.particles, player.x, player.y - 16, 2, COLORS.bullet, 80, 0.14, 1.1);
+    this.game.audio?.sfx('shoot', { level: player.weaponLevel });
   }
 
   useBomb() {
     if (this.phase !== 'playing' || this.paused || this.bombs <= 0) return;
 
     this.bombs -= 1;
+    this.game.audio?.sfx('bomb');
     this.flash = 1;
     this.shake = 18;
     this.player.invuln = Math.max(this.player.invuln, BOMB.invuln);
@@ -151,9 +170,13 @@ export class PlayScene {
     this.bossWarnT = 2.2;
     this.shake = 10;
     this.flash = 0.45;
+    this.game.audio?.sfx('warn');
+    this.game.audio?.setIntensity(2);
   }
 
   onBossPhase(boss) {
+    this.game.audio?.sfx('phase');
+    this.hitStop = Math.max(this.hitStop, JUICE.phaseStop);
     this.ebullets.length = 0;
     this.flash = 0.55;
     this.shake = 12;
@@ -164,6 +187,10 @@ export class PlayScene {
   }
 
   onBossDeath(boss) {
+    this.game.audio?.sfx('bossDown');
+    this.game.audio?.setIntensity(1);
+    this.hitStop = Math.max(this.hitStop, JUICE.phaseStop);
+    this.slowT = JUICE.deathSlow;
     const gain = BOSS.score * boss.index * this.mult;
     this.score += gain;
     this.shake = 20;
@@ -211,9 +238,13 @@ export class PlayScene {
     this.combo += 1;
     this.comboT = COMBO.baseWindow;
     this.maxCombo = Math.max(this.maxCombo, this.combo);
+    const prevMult = this.mult;
     this.mult = Math.min(COMBO.maxMult, 1 + Math.floor(this.combo / COMBO.perLevel));
+    if (this.mult > prevMult) this.multPulse = 1;
     this.maxMult = Math.max(this.maxMult, mult);
 
+    this.hitStop = Math.max(this.hitStop, JUICE.killStop);
+    this.game.audio?.sfx('kill');
     this.shake = Math.min(6, this.shake + 3);
     spawnBurst(this.particles, enemy.x, enemy.y, 18, COLORS.enemy, 240, 0.65, 2.6);
     spawnBurst(this.particles, enemy.x, enemy.y, 8, '#ffffff', 120, 0.4, 1.8);
@@ -237,6 +268,7 @@ export class PlayScene {
     spawnBurst(this.particles, pickup.x, pickup.y, 4, '#ffffff', 70, 0.25, 1.4);
 
     if (pickup.kind === 'module') {
+      this.game.audio?.sfx('module');
       if (this.player.weaponLevel < 5) {
         this.player.weaponLevel += 1;
         spawnFloater(this.floaters, pickup.x, pickup.y - 12, `武器 Lv.${this.player.weaponLevel}`, '#7ef0ff', 14);
@@ -248,12 +280,14 @@ export class PlayScene {
       return;
     }
 
+    this.game.audio?.sfx('pickup');
     this.score += 20 * this.mult;
     this.shieldCharge += 1;
     if (this.shieldCharge >= PICKUP.shieldChargeMax) {
       this.shieldCharge = 0;
       if (this.player.shields < this.player.maxShields) {
         this.player.shields += 1;
+        this.game.audio?.sfx('shield');
         spawnFloater(this.floaters, pickup.x, pickup.y - 12, '护盾 +1', '#5df3ff', 14);
       } else {
         this.score += 100;
@@ -266,12 +300,15 @@ export class PlayScene {
     if (this.phase !== 'playing' || player.invuln > 0) return;
 
     player.shields -= 1;
+    this.game.audio?.sfx('hurt');
     this.shake = Math.min(14, this.shake + 9);
     spawnBurst(this.particles, player.x, player.y, 14, COLORS.player, 200, 0.45, 2);
 
     if (player.shields <= 0) {
       this.phase = 'dying';
       this.dyingT = 1;
+      this.overT = 0;
+      this.game.audio?.sfx('over');
       spawnBurst(this.particles, player.x, player.y, 46, COLORS.player, 300, 0.9, 3);
       spawnBurst(this.particles, player.x, player.y, 18, '#ffffff', 150, 0.5, 2);
     } else {
@@ -293,6 +330,7 @@ export class PlayScene {
 
         enemy.hp -= 1;
         enemy.hitFlash = 0.09;
+        this.game.audio?.sfx('hit');
         spawnBurst(this.particles, bullet.x, bullet.y, 3, '#ffffff', 140, 0.16, 1.5);
 
         if (bullet.pierce > 0) {
@@ -321,6 +359,7 @@ export class PlayScene {
 
         bullet.dead = true;
         this.boss.damage(1, this);
+        this.game.audio?.sfx('hit');
         spawnBurst(this.particles, bullet.x, bullet.y, 2, '#ffffff', 130, 0.15, 1.4);
       }
       this.bullets = this.bullets.filter((bullet) => !bullet.dead);
@@ -361,17 +400,31 @@ export class PlayScene {
   update(dt) {
     if (this.paused) return;
 
-    this.time += dt;
+    let step = dt;
+    if (this.hitStop > 0) {
+      this.hitStop = Math.max(0, this.hitStop - dt);
+      step = dt * 0.12;
+    }
+    if (this.slowT > 0) {
+      this.slowT = Math.max(0, this.slowT - dt);
+      step = Math.min(step, dt * JUICE.deathScale);
+    }
+
+    this.time += step;
+    const ease = 1 - Math.exp(-9 * dt);
+    this.displayScore += (this.score - this.displayScore) * ease;
+    this.multPulse = Math.max(0, this.multPulse - dt * 3.2);
+
     this.shake = this.shake > 0.05 ? this.shake * Math.exp(-5 * dt) : 0;
     this.flash = Math.max(0, this.flash - dt * 2.6);
-    updateParticles(this.particles, dt);
-    updateFloaters(this.floaters, dt);
+    updateParticles(this.particles, step);
+    updateFloaters(this.floaters, step);
 
     if (this.phase === 'playing') {
-      this.player.update(dt, this.game.input, this);
+      this.player.update(step, this.game.input, this);
 
       if (this.comboT > 0) {
-        this.comboT -= dt;
+        this.comboT -= step;
         if (this.comboT <= 0) {
           this.combo = 0;
           this.mult = 1;
@@ -379,22 +432,22 @@ export class PlayScene {
       }
 
       if (this.boss) {
-        this.boss.update(dt, this);
+        this.boss.update(step, this);
         if (this.boss.dead) this.boss = null;
       } else if (this.time >= this.nextBossAt) {
         this.spawnBoss();
       } else {
-        this.spawnT -= dt;
+        this.spawnT -= step;
         if (this.spawnT <= 0) {
           spawnEnemy(this, this.time);
           this.spawnT = spawnInterval(this.time) * this.diff.spawnScale * (0.8 + Math.random() * 0.4);
         }
       }
 
-      if (this.bossWarnT > 0) this.bossWarnT = Math.max(0, this.bossWarnT - dt);
-      if (this.phaseBannerT > 0) this.phaseBannerT = Math.max(0, this.phaseBannerT - dt);
+      if (this.bossWarnT > 0) this.bossWarnT = Math.max(0, this.bossWarnT - step);
+      if (this.phaseBannerT > 0) this.phaseBannerT = Math.max(0, this.phaseBannerT - step);
 
-      for (const enemy of this.enemies) enemy.update(dt, this);
+      for (const enemy of this.enemies) enemy.update(step, this);
       this.enemies = this.enemies.filter(
         (enemy) =>
           !enemy.dead &&
@@ -404,8 +457,8 @@ export class PlayScene {
       );
 
       for (const bullet of this.bullets) {
-        bullet.x += bullet.vx * dt;
-        bullet.y += bullet.vy * dt;
+        bullet.x += bullet.vx * step;
+        bullet.y += bullet.vy * step;
       }
       this.bullets = this.bullets.filter(
         (bullet) =>
@@ -417,15 +470,15 @@ export class PlayScene {
       );
 
       for (const bullet of this.ebullets) {
-        bullet.x += bullet.vx * dt;
-        bullet.y += bullet.vy * dt;
+        bullet.x += bullet.vx * step;
+        bullet.y += bullet.vy * step;
       }
       this.ebullets = this.ebullets.filter(
         (bullet) =>
           bullet.y > -30 && bullet.y < VIEW.h + 30 && bullet.x > -30 && bullet.x < VIEW.w + 30
       );
 
-      for (const pickup of this.pickups) pickup.update(dt, this.player);
+      for (const pickup of this.pickups) pickup.update(step, this.player);
       for (const pickup of this.pickups) {
         if (pickup.dead) continue;
         const dx = pickup.x - this.player.x;
@@ -439,8 +492,10 @@ export class PlayScene {
 
       this.collide();
     } else if (this.phase === 'dying') {
-      this.dyingT -= dt;
+      this.dyingT -= step;
       if (this.dyingT <= 0) this.phase = 'over';
+    } else if (this.phase === 'over') {
+      this.overT += dt;
     }
   }
 

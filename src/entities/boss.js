@@ -164,5 +164,23 @@ export class Boss {
       ctx.stroke();
       ctx.restore();
     }
+
+    if (this.state === 'fighting') {
+      const warn = Math.min(this.shootMain, this.shootSub);
+      if (warn < 0.34) {
+        const k = 1 - warn / 0.34;
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.strokeStyle = color;
+        ctx.globalAlpha = 0.16 + k * 0.5;
+        ctx.lineWidth = 1.4 + k * 2;
+        ctx.shadowColor = color;
+        ctx.shadowBlur = 12;
+        ctx.beginPath();
+        ctx.arc(0, 0, this.r + 8 + (1 - k) * 30, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+      }
+    }
   }
 }

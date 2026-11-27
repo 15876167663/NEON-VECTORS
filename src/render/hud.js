@@ -13,7 +13,7 @@ export function drawHud(ctx, scene) {
   ctx.fillStyle = COLORS.hud;
   ctx.shadowColor = 'rgba(93, 243, 255, 0.55)';
   ctx.shadowBlur = 14;
-  ctx.fillText(String(scene.score).padStart(6, '0'), 20, 56);
+  ctx.fillText(String(Math.round(scene.displayScore)).padStart(6, '0'), 20, 56);
   ctx.restore();
 
   ctx.textAlign = 'right';
@@ -35,7 +35,18 @@ export function drawHud(ctx, scene) {
   ctx.fillText(scene.diff.name, VIEW.w / 2, 26);
 
   if (scene.mult > 1) {
-    labelCenter(ctx, `×${scene.mult}`, VIEW.w / 2, 46, 24, '#ffd166', 16);
+    ctx.save();
+    ctx.translate(VIEW.w / 2, 46);
+    ctx.scale(1 + scene.multPulse * 0.38, 1 + scene.multPulse * 0.38);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.font = `700 24px ${FONT.mono}`;
+    ctx.shadowColor = '#ffd166';
+    ctx.shadowBlur = 16 + scene.multPulse * 14;
+    ctx.fillStyle = '#ffd166';
+    ctx.fillText(`×${scene.mult}`, 0, 0);
+    ctx.restore();
+
     const progress = Math.max(0, Math.min(1, scene.comboT / COMBO.baseWindow));
     ctx.fillStyle = 'rgba(255, 209, 102, 0.18)';
     ctx.fillRect(VIEW.w / 2 - 34, 60, 68, 2);
@@ -134,14 +145,3 @@ export function drawBossBar(ctx, scene) {
   ctx.fillText(`BOSS ${boss.index}  PHASE ${boss.phase}`, x + width, y - 7);
 }
 
-function labelCenter(ctx, str, x, y, size, color, glow) {
-  ctx.save();
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.font = `700 ${size}px ${FONT.mono}`;
-  ctx.shadowColor = color;
-  ctx.shadowBlur = glow;
-  ctx.fillStyle = color;
-  ctx.fillText(str, x, y);
-  ctx.restore();
-}

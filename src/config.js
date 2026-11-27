@@ -89,4 +89,19 @@ export const BOSS = {
   radius: 46,
 };
 
+export const AUDIO = {
+  storageKey: 'neon-vectors:muted',
+  master: 0.85,
+  sfx: 0.9,
+  music: 0.5,
+  reverb: 0.16,
+};
+
+export const JUICE = {
+  killStop: 0.025,
+  phaseStop: 0.09,
+  deathSlow: 1.05,
+  deathScale: 0.32,
+};
+
 export const WAVE_SECONDS = 20;

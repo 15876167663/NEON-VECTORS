@@ -16,6 +16,19 @@ function tick(enemy, dt) {
   if (enemy.hitFlash > 0) enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
 }
 
+function warnRing(ctx, enemy, radius) {
+  if (enemy.shootT > 0.3 || enemy.dead) return;
+  const k = 1 - enemy.shootT / 0.3;
+  ctx.save();
+  ctx.translate(enemy.x, enemy.y);
+  ctx.strokeStyle = `rgba(255, 214, 150, ${0.16 + k * 0.5})`;
+  ctx.lineWidth = 1 + k * 1.4;
+  ctx.beginPath();
+  ctx.arc(0, 0, radius + (1 - k) * 14, 0, Math.PI * 2);
+  ctx.stroke();
+  ctx.restore();
+}
+
 export class HexEnemy {
   constructor(x, y, speed) {
     this.id = nextId++;
@@ -77,6 +90,7 @@ export class HexEnemy {
     ctx.fill();
 
     ctx.restore();
+    warnRing(ctx, this, this.r + 6);
   }
 }
 
@@ -216,5 +230,6 @@ export class TurretEnemy {
     ctx.fill();
 
     ctx.restore();
+    warnRing(ctx, this, 30);
   }
 }

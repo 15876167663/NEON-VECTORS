@@ -26,9 +26,15 @@ export class TitleScene {
   }
 
   keyDown(key) {
-    if (key === 'a' || key === 'arrowleft') this.index = 0;
-    else if (key === 'd' || key === 'arrowright') this.index = 1;
-    else if (key === ' ' || key === 'enter') this.start(CARDS[this.index].id);
+    if (key === 'a' || key === 'arrowleft') {
+      if (this.index !== 0) this.game.audio?.sfx('ui');
+      this.index = 0;
+    } else if (key === 'd' || key === 'arrowright') {
+      if (this.index !== 1) this.game.audio?.sfx('ui');
+      this.index = 1;
+    } else if (key === ' ' || key === 'enter') {
+      this.start(CARDS[this.index].id);
+    }
   }
 
   pointerDown(pointer) {
@@ -47,6 +53,7 @@ export class TitleScene {
   }
 
   start(id) {
+    this.game.audio?.sfx('select');
     this.game.startGame(id);
   }
 
@@ -76,9 +83,13 @@ export class TitleScene {
     ctx.stroke();
     ctx.restore();
 
-    label(ctx, 'NEON', VIEW.w / 2, VIEW.h * 0.27, 62, '#8ef6ff', { weight: 800, glow: 28 });
-    label(ctx, 'VECTORS', VIEW.w / 2, VIEW.h * 0.27 + 56, 40, '#ff8fc4', { weight: 700, glow: 22 });
-    label(ctx, '几何弹幕 · 每 60 秒 Boss', VIEW.w / 2, VIEW.h * 0.43, 13, 'rgba(170, 215, 255, 0.6)', {
+    const float = Math.sin(this.time * 1.3) * 3;
+    label(ctx, 'NEON', VIEW.w / 2, VIEW.h * 0.27 + float, 62, '#8ef6ff', { weight: 800, glow: 28 });
+    label(ctx, 'VECTORS', VIEW.w / 2, VIEW.h * 0.27 + 56 + float, 40, '#ff8fc4', {
+      weight: 700,
+      glow: 22,
+    });
+    label(ctx, '几何弹幕 · 每 60 秒 Boss', VIEW.w / 2, VIEW.h * 0.43 + float * 0.4, 13, 'rgba(170, 215, 255, 0.6)', {
       weight: 500,
     });
 
@@ -96,7 +107,7 @@ export class TitleScene {
     label(ctx, '移动  WASD · 方向键 · 按住拖动', VIEW.w / 2, VIEW.h * 0.855, 12, COLORS.faint, {
       weight: 500,
     });
-    label(ctx, '自动射击 · X 炸弹 · Esc 暂停', VIEW.w / 2, VIEW.h * 0.885, 12, COLORS.faint, {
+    label(ctx, '自动射击 · X 炸弹 · Esc 暂停 · M 静音', VIEW.w / 2, VIEW.h * 0.885, 12, COLORS.faint, {
       weight: 500,
     });
   }
@@ -111,8 +122,9 @@ export class TitleScene {
     ctx.fillStyle = selected ? 'rgba(18, 38, 62, 0.92)' : 'rgba(10, 16, 28, 0.8)';
     ctx.fill();
     if (selected) {
+      const breathe = 0.5 + 0.5 * Math.sin(this.time * 3.4);
       ctx.shadowColor = 'rgba(93, 243, 255, 0.8)';
-      ctx.shadowBlur = 18;
+      ctx.shadowBlur = 14 + breathe * 14;
     }
     ctx.strokeStyle = selected ? '#7ef0ff' : 'rgba(120, 180, 255, 0.25)';
     ctx.lineWidth = selected ? 1.8 : 1;
