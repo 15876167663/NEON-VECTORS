@@ -6,6 +6,11 @@
 **代码仓库**：[GitHub](https://github.com/15876167663/NEON-VECTORS) · [Gitee](https://gitee.com/itcastutil/neon-vectors)  
 **当前版本**：v1.5.0（2026-11-28）
 
+<p align="center">
+  <img src="docs/images/title.png" width="380" alt="NEON VECTORS 标题页" />
+</p>
+<p align="center"><em>标题页 · 难度选择与霓虹几何视觉</em></p>
+
 ---
 
 ## 1. 项目概况
@@ -46,6 +51,11 @@
 | LANCE | 精准穿透 | 单发高伤、贯穿直线，跟枪打 Boss 最快 | 需要对准，清群弱 |
 | SCATTER | 近距爆发 | 宽扇多弹，贴脸清群与打 Boss 极强 | 远距离乏力 |
 
+<p align="center">
+  <img src="docs/images/weapon-select.png" width="360" alt="武器选择页" />
+</p>
+<p align="center"><em>开局武器三选一 · 独立弹道与射速</em></p>
+
 ### 2.3 敌人与 Boss
 
 | 敌人 | 行为 | 弹幕 |
@@ -56,12 +66,22 @@
 
 Boss 每约 60 秒出现一次，三种形态 `HEX → ORBIT → PRISM` 每 3 场循环，各有三阶段专属弹幕。阶段切换包含 1 秒无敌、缓动换位、敌弹吸收与护盾演出。
 
+<p align="center">
+  <img src="docs/images/boss-fight.png" width="360" alt="Boss 战斗画面" />
+</p>
+<p align="center"><em>第 24 场 PRISM Boss · 后期弹幕与 ×6 连击</em></p>
+
 ### 2.4 成长与容错
 
 - 连击倍率最高 ×8，90px 内近身击杀额外 +1，结算展示最高倍率与最大连击。
 - 能量核心延长连击窗口，并积累护盾充能。
 - 每局 3 枚炸弹，清空敌弹并提供短暂无敌，不打断连击。
 - 武器模块每 8 次击杀或炮台掉落，Lv.5 约在 46–61 秒达成。
+
+<p align="center">
+  <img src="docs/images/game-over.png" width="360" alt="结算页" />
+</p>
+<p align="center"><em>结算页 · 分数、最高倍率、最大连击与武器等级</em></p>
 
 ### 2.5 音频与表现
 
