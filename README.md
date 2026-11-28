@@ -47,8 +47,11 @@
 ```bash
 npm install
 npm run dev      # 本地开发
+npm test         # Node 内置回归测试
 npm run build    # 产出 dist/
 ```
+
+回归测试覆盖两个高风险点：炮台预警圈在极端负计时下的半径边界，以及 Boss 血量曲线的前期固定值与后期上限。
 
 ## 部署
 

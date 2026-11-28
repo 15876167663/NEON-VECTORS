@@ -153,6 +153,12 @@ src/
 - 难度、武器、Boss 血量、连击、拾取、后期曲线集中在 `config.js` 与 `weapons.js`。
 - 调整数值不需要改战斗逻辑，便于批量模拟与回归验证。
 
+### 4.6 回归测试
+
+- 使用 Node 内置 test runner，零新增依赖，`npm test` 即可运行；GitHub Actions 每次推送先测试再构建。
+- 覆盖炮台预警圈在极端负计时下的半径边界，防止再次出现绘制异常停帧。
+- 覆盖 Boss 血量曲线：前 12 场固定、后期增长且不超过 470 上限。
+
 ---
 
 ## 5. 数值与平衡
@@ -241,6 +247,8 @@ The radius provided (-0.675556) is negative.
 | 运行时依赖 | 0 |
 | 生产 JS | 56.42 KB（gzip 18.35 KB） |
 | 生产 CSS | 0.74 KB |
+| 回归测试 | Node test runner，2 个用例，CI 自动执行 |
+| 文档配图 | 4 张 720×1200 PNG，合计约 455 KB |
 | 部署 | GitHub Actions → GitHub Pages |
 | 镜像 | Gitee |
 
@@ -260,7 +268,7 @@ GitHub Actions 在每次推送 `main` 后自动构建并发布；Vite 使用相�
 
 ### 不足与风险
 
-- 没有自动化测试套件；数值验证依赖临时脚本，绘制异常缺少回归用例。
+- 自动化测试仅覆盖两个高风险回归点；绘制、音频与移动端仍缺少浏览器级测试。
 - 机器人模拟不能替代真实手感，移动端长时游玩与音频解锁仍需真机验证。
 - 内容量仍偏小：只有 3 种敌机、3 种 Boss 形态，缺少分裂体等进阶敌人。
 - 没有本地排行榜、成就或每日挑战，长线留存主要靠无尽分数。
@@ -288,6 +296,7 @@ GitHub Actions 在每次推送 `main` 后自动构建并发布；Vite 使用相�
 ```bash
 npm install
 npm run dev      # 本地开发
+npm test         # Node 内置回归测试
 npm run build    # 生产构建
 npm run preview  # 预览构建结果
 ```
