@@ -1,8 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Boss } from '../src/entities/boss.js';
-import { TurretEnemy } from '../src/entities/enemy.js';
-import { BOSS } from '../src/config.js';
+import { SplitterEnemy, TurretEnemy } from '../src/entities/enemy.js';
+import { pickType } from '../src/game/director.js';
+import { BOSS, ENEMY } from '../src/config.js';
 
 function createRecordingContext() {
   const arcs = [];
@@ -67,4 +68,46 @@ test('Boss 血量曲线保持前 12 场不变，并在后期提高上限', () =>
     assert.ok(value <= BOSS.hpCap, `Boss ${index} 血量超过上限`);
     previous = value;
   }
+});
+
+test('分裂体死亡只生成两个不再分裂的子体', () => {
+  const splitter = new SplitterEnemy(240, 180, 40);
+  const children = splitter.split();
+  const ctx = createRecordingContext();
+
+  assert.equal(children.length, ENEMY.splitter.shards);
+  assert.equal(children.length, 2);
+  assert.doesNotThrow(() => splitter.draw(ctx));
+  for (const child of children) {
+    assert.equal(child.kind, 'shard');
+    assert.equal(child.hp, ENEMY.shard.hp);
+    assert.equal(child.score, ENEMY.shard.score);
+    assert.equal(child.y, splitter.y);
+    assert.notEqual(child.x, splitter.x);
+    assert.equal(child.split, undefined);
+    assert.doesNotThrow(() => child.draw(ctx));
+  }
+});
+
+test('分裂体从第 36 秒开始进入出怪池', () => {
+  assert.notEqual(pickType(35.9, 0.99), 'splitter');
+  assert.equal(pickType(36, 0.99), 'splitter');
+  assert.equal(pickType(59.9, 0.99), 'splitter');
+  assert.equal(pickType(120, 0.99), 'splitter');
+});
+
+test('子体只发射一次三连小散射', () => {
+  const shard = new SplitterEnemy(240, 180, 40).split()[0];
+  const scene = {
+    diff: { bulletScale: 1 },
+    player: { x: 240, y: 680 },
+    ebullets: [],
+  };
+
+  shard.update(0.33, scene);
+  assert.equal(shard.fired, true);
+  assert.equal(scene.ebullets.length, 3);
+
+  shard.update(0.5, scene);
+  assert.equal(scene.ebullets.length, 3);
 });

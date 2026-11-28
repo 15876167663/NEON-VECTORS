@@ -199,6 +199,10 @@ export class AudioEngine {
         this.hiss(0.26, 0.13, 'lowpass', 2200, 260);
         this.tone('sine', 190, 48, 0.3, 0.1);
         break;
+      case 'split':
+        this.tone('triangle', 460, 170, 0.24, 0.075);
+        this.hiss(0.22, 0.065, 'bandpass', 1500, 320);
+        break;
       case 'pickup':
         this.tone('sine', 880, 1320, 0.09, 0.045);
         break;

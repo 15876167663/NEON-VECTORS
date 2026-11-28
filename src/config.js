@@ -48,6 +48,8 @@ export const ENEMY = {
   hex: { hp: 3, score: 100 },
   dart: { hp: 2, score: 80 },
   turret: { hp: 6, score: 200 },
+  splitter: { hp: 7, score: 220, shards: 2, shardOffset: 18 },
+  shard: { hp: 1, score: 40 },
 };
 
 export const BOMB = {

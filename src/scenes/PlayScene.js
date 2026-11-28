@@ -21,6 +21,7 @@ export class PlayScene {
     this.bullets = [];
     this.ebullets = [];
     this.enemies = [];
+    this.pendingEnemies = [];
     this.particles = [];
     this.pickups = [];
     this.floaters = [];
@@ -191,6 +192,7 @@ export class PlayScene {
       spawnBurst(this.particles, enemy.x, enemy.y, 8, COLORS.enemy, 180, 0.5, 2);
     }
     this.enemies.length = 0;
+    this.pendingEnemies.length = 0;
 
     this.bossIndex += 1;
     this.boss = new Boss(this.bossIndex);
@@ -319,6 +321,17 @@ export class PlayScene {
     this.spawnPickup('core', enemy.x, enemy.y);
     if (enemy.kind === 'turret' || this.kills % PICKUP.moduleEveryKills === 0) {
       this.spawnPickup('module', enemy.x, enemy.y);
+    }
+
+    if (enemy.split) {
+      const children = enemy.split();
+      if (children.length) {
+        this.pendingEnemies.push(...children);
+        for (const child of children) {
+          spawnBurst(this.particles, child.x, child.y, 8, '#ffb36b', 150, 0.35, 1.8);
+        }
+        this.game.audio?.sfx('split');
+      }
     }
   }
 
@@ -473,6 +486,12 @@ export class PlayScene {
     }
   }
 
+  flushPendingEnemies() {
+    if (!this.pendingEnemies.length) return;
+    this.enemies.push(...this.pendingEnemies);
+    this.pendingEnemies.length = 0;
+  }
+
   update(dt) {
     if (this.paused) return;
 
@@ -589,6 +608,7 @@ export class PlayScene {
       this.pickups = this.pickups.filter((pickup) => !pickup.dead);
 
       this.collide();
+      this.flushPendingEnemies();
     } else if (this.phase === 'dying') {
       this.dyingT -= step;
       if (this.dyingT <= 0) {
