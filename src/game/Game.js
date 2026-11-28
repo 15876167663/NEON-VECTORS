@@ -5,6 +5,7 @@ import { Input } from '../input.js';
 import { Backdrop } from '../render/backdrop.js';
 import { TitleScene } from '../scenes/TitleScene.js';
 import { PlayScene } from '../scenes/PlayScene.js';
+import { RecordsScene } from '../scenes/RecordsScene.js';
 import { SettingsScene } from '../scenes/SettingsScene.js';
 import { WeaponScene } from '../scenes/WeaponScene.js';
 
@@ -42,6 +43,10 @@ export class Game {
 
   toSettings() {
     this.setScene(new SettingsScene(this));
+  }
+
+  toRecords() {
+    this.setScene(new RecordsScene(this));
   }
 
   toWeapon(difficultyId) {

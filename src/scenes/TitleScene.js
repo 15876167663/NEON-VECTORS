@@ -1,5 +1,6 @@
 import { VIEW, COLORS, DIFFICULTIES } from '../config.js';
 import { polygon, roundRect, label } from '../core/draw.js';
+import { loadRecords } from '../records.js';
 
 const CARDS = [
   {
@@ -19,6 +20,11 @@ export class TitleScene {
     this.game = game;
     this.time = 0;
     this.index = 0;
+    this.records = loadRecords();
+  }
+
+  enter() {
+    this.records = loadRecords();
   }
 
   update(dt) {
@@ -37,10 +43,25 @@ export class TitleScene {
     } else if (key === 's') {
       this.game.audio?.sfx('ui');
       this.game.toSettings();
+    } else if (key === 'l') {
+      this.game.audio?.sfx('ui');
+      this.game.toRecords();
     }
   }
 
   pointerDown(pointer) {
+    const records = this.recordsRect();
+    if (
+      pointer.x >= records.x &&
+      pointer.x <= records.x + records.w &&
+      pointer.y >= records.y &&
+      pointer.y <= records.y + records.h
+    ) {
+      this.game.audio?.sfx('ui');
+      this.game.toRecords();
+      return;
+    }
+
     const settings = this.settingRect();
     if (
       pointer.x >= settings.x &&
@@ -84,6 +105,10 @@ export class TitleScene {
     return { x: VIEW.w - 96, y: 20, w: 76, h: 30 };
   }
 
+  recordsRect() {
+    return { x: 20, y: 20, w: 76, h: 30 };
+  }
+
   draw(ctx) {
     const backdrop = this.game.backdrop;
     backdrop.draw(ctx);
@@ -116,18 +141,29 @@ export class TitleScene {
 
     for (let i = 0; i < CARDS.length; i++) this.drawCard(ctx, i);
     this.drawSettingsButton(ctx);
+    this.drawRecordsButton(ctx);
+
+    const best = this.records.best;
+    const bestText =
+      best.score > 0
+        ? `BEST ${String(best.score).padStart(6, '0')} · WAVE ${best.wave}`
+        : 'BEST ------ · 完成一局后记录';
+    label(ctx, bestText, VIEW.w / 2, 580, 12, best.score > 0 ? '#ffd166' : COLORS.faint, {
+      weight: 600,
+      mono: true,
+    });
 
     const blink = 0.4 + 0.6 * Math.abs(Math.sin(this.time * 2));
-    label(ctx, '← → 切换 · 空格 / 点击选择武器', VIEW.w / 2, 600, 15, '#d6f1ff', {
+    label(ctx, '← → 切换 · 空格 / 点击选择武器', VIEW.w / 2, 616, 15, '#d6f1ff', {
       weight: 600,
       alpha: blink,
       glow: 10,
     });
 
-    label(ctx, '移动  WASD · 方向键 · 按住拖动', VIEW.w / 2, VIEW.h * 0.855, 12, COLORS.faint, {
+    label(ctx, '移动  WASD · 方向键 · 按住拖动', VIEW.w / 2, 692, 12, COLORS.faint, {
       weight: 500,
     });
-    label(ctx, '自动射击 · X 炸弹 · Esc 暂停 · M 静音 · S 设置', VIEW.w / 2, VIEW.h * 0.885, 12, COLORS.faint, {
+    label(ctx, '自动射击 · X 炸弹 · Esc 暂停 · M 静音 · S 设置', VIEW.w / 2, 716, 12, COLORS.faint, {
       weight: 500,
     });
   }
@@ -143,6 +179,22 @@ export class TitleScene {
     ctx.stroke();
     ctx.restore();
     label(ctx, '设置 S', rect.x + rect.w / 2, rect.y + rect.h / 2, 11, 'rgba(180, 220, 255, 0.7)', {
+      weight: 600,
+      mono: true,
+    });
+  }
+
+  drawRecordsButton(ctx) {
+    const rect = this.recordsRect();
+    ctx.save();
+    roundRect(ctx, rect.x, rect.y, rect.w, rect.h, 8);
+    ctx.fillStyle = 'rgba(10, 18, 32, 0.75)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(120, 180, 255, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+    label(ctx, '战绩 L', rect.x + rect.w / 2, rect.y + rect.h / 2, 11, 'rgba(180, 220, 255, 0.7)', {
       weight: 600,
       mono: true,
     });

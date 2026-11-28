@@ -10,6 +10,7 @@ import { drawPlayerBullets, drawEnemyBullets } from '../entities/bullets.js';
 import { drawHud, drawBossBar } from '../render/hud.js';
 import { label } from '../core/draw.js';
 import { vibrate } from '../settings.js';
+import { recordRun } from '../records.js';
 
 export class PlayScene {
   constructor(game, difficultyId, weaponId = 'pulse') {
@@ -43,6 +44,7 @@ export class PlayScene {
     this.onVisibility = null;
     this.boss = null;
     this.bossIndex = 0;
+    this.bossesDefeated = 0;
     this.nextBossAt = BOSS.firstAt;
     this.bossWarnT = 0;
     this.phaseBannerT = 0;
@@ -52,6 +54,10 @@ export class PlayScene {
     this.displayScore = 0;
     this.multPulse = 0;
     this.overT = 0;
+    this.recordSaved = false;
+    this.isNewRecord = false;
+    this.runRank = null;
+    this.bestScore = 0;
   }
 
   get wave() {
@@ -117,6 +123,8 @@ export class PlayScene {
     if (this.phase === 'over') {
       if (key === 'r' || key === ' ' || key === 'enter') {
         this.game.startGame(this.diff.id, this.weaponId);
+      } else if (key === 'l') {
+        this.game.toRecords();
       } else if (key === 'escape' || key === 't') this.game.toTitle();
       return;
     }
@@ -214,6 +222,7 @@ export class PlayScene {
   }
 
   onBossDeath(boss) {
+    this.bossesDefeated += 1;
     this.game.audio?.sfx('bossDown');
     vibrate([40, 30, 90]);
     this.game.audio?.setIntensity(1);
@@ -248,6 +257,28 @@ export class PlayScene {
 
     this.nextBossAt = this.time + BOSS.gapAfter;
     this.spawnT = 1.4;
+  }
+
+  saveRecord() {
+    if (this.recordSaved) return;
+    this.recordSaved = true;
+
+    const result = recordRun({
+      score: this.score,
+      wave: this.wave,
+      kills: this.kills,
+      maxCombo: this.maxCombo,
+      maxMult: this.maxMult,
+      weaponId: this.player.weaponId,
+      difficultyId: this.diff.id,
+      duration: this.time,
+      bosses: this.bossesDefeated,
+      at: Date.now(),
+    });
+
+    this.isNewRecord = result.isNewRecord;
+    this.runRank = result.rank;
+    this.bestScore = result.records.best.score;
   }
 
   killEnemy(enemy) {
@@ -560,7 +591,10 @@ export class PlayScene {
       this.collide();
     } else if (this.phase === 'dying') {
       this.dyingT -= step;
-      if (this.dyingT <= 0) this.phase = 'over';
+      if (this.dyingT <= 0) {
+        this.phase = 'over';
+        this.saveRecord();
+      }
     } else if (this.phase === 'over') {
       this.overT += dt;
     }
@@ -637,6 +671,12 @@ export class PlayScene {
     ctx.fillRect(0, 0, VIEW.w, VIEW.h);
 
     label(ctx, 'GAME OVER', VIEW.w / 2, VIEW.h * 0.3, 40, '#ff7ab6', { weight: 800, glow: 24 });
+    if (this.isNewRecord) {
+      label(ctx, 'NEW RECORD', VIEW.w / 2, 272, 13, '#ffd166', {
+        weight: 800,
+        glow: 14,
+      });
+    }
     label(ctx, 'SCORE', VIEW.w / 2, VIEW.h * 0.37, 12, COLORS.dim, { mono: true, weight: 500 });
     label(ctx, String(this.score).padStart(6, '0'), VIEW.w / 2, VIEW.h * 0.37 + 36, 36, COLORS.hud, {
       mono: true,
@@ -687,11 +727,20 @@ export class PlayScene {
       { weight: 500 }
     );
 
+    const best = String(this.bestScore).padStart(6, '0');
+    const rank = this.runRank ? ` · 本局 #${this.runRank}` : '';
+    label(ctx, `本机最高 ${best}${rank}`, VIEW.w / 2, rowY + 136, 12, '#ffd166', {
+      weight: 600,
+      mono: true,
+    });
+
     const blink = 0.4 + 0.6 * Math.abs(Math.sin(this.time * 2.2));
     label(ctx, 'R / 空格 / 点击 重开', VIEW.w / 2, VIEW.h * 0.71, 16, '#d6f1ff', {
       weight: 600,
       alpha: blink,
     });
-    label(ctx, 'Esc 返回标题', VIEW.w / 2, VIEW.h * 0.71 + 30, 13, COLORS.faint, { weight: 500 });
+    label(ctx, 'L 查看战绩 · Esc 返回标题', VIEW.w / 2, VIEW.h * 0.71 + 30, 13, COLORS.faint, {
+      weight: 500,
+    });
   }
 }
