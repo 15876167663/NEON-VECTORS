@@ -136,3 +136,23 @@ test('存储可持久化，写入失败不影响单局结果', () => {
   assert.equal(failed.records.runs[0].score, 654);
   assert.equal(loadRecords(broken).runs.length, 0);
 });
+
+test('每日模式字段可持久化，旧记录回退为无尽模式', () => {
+  const map = new Map();
+  const store = {
+    getItem: (key) => map.get(key) ?? null,
+    setItem: (key, value) => map.set(key, value),
+  };
+
+  recordRun(
+    makeRun({ score: 321, mode: 'daily', dailyDate: '2026-11-28', at: 1 }),
+    store
+  );
+  const loaded = loadRecords(store);
+  assert.equal(loaded.runs[0].mode, 'daily');
+  assert.equal(loaded.runs[0].dailyDate, '2026-11-28');
+
+  const legacy = normalizeRecords({ runs: [{ score: 100, at: 2 }] });
+  assert.equal(legacy.runs[0].mode, 'endless');
+  assert.equal(legacy.runs[0].dailyDate, '');
+});

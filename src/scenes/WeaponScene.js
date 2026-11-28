@@ -3,9 +3,10 @@ import { WEAPONS, WEAPON_ORDER } from '../game/weapons.js';
 import { roundRect, label } from '../core/draw.js';
 
 export class WeaponScene {
-  constructor(game, difficultyId) {
+  constructor(game, difficultyId, run = null) {
     this.game = game;
     this.diff = DIFFICULTIES[difficultyId] || DIFFICULTIES.standard;
+    this.run = run;
     this.time = 0;
     this.index = 0;
   }
@@ -62,7 +63,7 @@ export class WeaponScene {
 
   start() {
     this.game.audio?.sfx('select');
-    this.game.startGame(this.diff.id, WEAPON_ORDER[this.index]);
+    this.game.startGame(this.diff.id, WEAPON_ORDER[this.index], this.run);
   }
 
   cardRect(index) {
@@ -94,9 +95,24 @@ export class WeaponScene {
     label(ctx, `难度 · ${this.diff.name}`, VIEW.w / 2, 164, 12, 'rgba(170, 215, 255, 0.7)', {
       weight: 600,
     });
-    label(ctx, '固定武器 · 拾取模块升级到 Lv.5', VIEW.w / 2, 190, 11, COLORS.faint, {
-      weight: 500,
-    });
+    if (this.run?.mode === 'daily') {
+      label(
+        ctx,
+        `DAILY ${this.run.dateLabel} · SEED ${this.run.seedLabel}`,
+        VIEW.w / 2,
+        188,
+        11,
+        '#ffd166',
+        { mono: true, weight: 700 }
+      );
+      label(ctx, '固定武器 · 拾取模块升级到 Lv.5', VIEW.w / 2, 208, 10, COLORS.faint, {
+        weight: 500,
+      });
+    } else {
+      label(ctx, '固定武器 · 拾取模块升级到 Lv.5', VIEW.w / 2, 190, 11, COLORS.faint, {
+        weight: 500,
+      });
+    }
 
     for (let i = 0; i < WEAPON_ORDER.length; i += 1) this.drawCard(ctx, i);
     this.drawBackButton(ctx);

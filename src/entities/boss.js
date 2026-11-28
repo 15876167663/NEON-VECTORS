@@ -90,7 +90,7 @@ const easeInOut = (t) =>
   t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
 
 export class Boss {
-  constructor(index) {
+  constructor(index, random = Math.random) {
     this.index = index;
     this.kind = ORDER[(index - 1) % ORDER.length];
     this.x = VIEW.w / 2;
@@ -107,7 +107,8 @@ export class Boss {
     this.hitFlash = 0;
     this.shootMain = 1.2;
     this.shootSub = 1.6;
-    this.dir = Math.random() < 0.5 ? 1 : -1;
+    this.random = random;
+    this.dir = this.random() < 0.5 ? 1 : -1;
     this.dead = false;
     this.invulnT = 0;
     this.pulseT = 0;
@@ -219,7 +220,7 @@ export class Boss {
     const nextPhase = ratio > 0.66 ? 1 : ratio > 0.33 ? 2 : 3;
     if (nextPhase > this.phase) {
       this.phase = nextPhase;
-      this.beginTransition(120 + Math.random() * 70);
+      this.beginTransition(120 + this.random() * 70);
       scene.onBossPhase(this);
     }
   }

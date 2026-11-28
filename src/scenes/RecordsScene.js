@@ -1,6 +1,7 @@
 import { VIEW, COLORS, DIFFICULTIES } from '../config.js';
 import { getWeapon } from '../game/weapons.js';
 import { loadRecords } from '../records.js';
+import { dailyChallenge, formatDailyDate, loadDailyResult } from '../daily.js';
 import { label, polygon, roundRect } from '../core/draw.js';
 
 const RANK_COLORS = [
@@ -21,6 +22,9 @@ export class RecordsScene {
     this.game = game;
     this.time = 0;
     this.records = loadRecords();
+    this.daily = dailyChallenge();
+    const result = loadDailyResult();
+    this.dailyBest = result.dateKey === this.daily.dateKey ? result : null;
   }
 
   update(dt) {
@@ -65,6 +69,13 @@ export class RecordsScene {
       weight: 500,
       mono: true,
     });
+    const dailyText = this.dailyBest
+      ? `DAILY ${this.daily.dateLabel} · BEST ${String(this.dailyBest.bestScore).padStart(6, '0')}`
+      : `DAILY ${this.daily.dateLabel} · 尚未挑战`;
+    label(ctx, dailyText, VIEW.w / 2, 140, 10, this.dailyBest ? '#ffd166' : COLORS.faint, {
+      mono: true,
+      weight: 600,
+    });
 
     if (this.records.runs.length) {
       this.records.runs.forEach((run, index) => this.drawRow(ctx, run, index));
@@ -78,7 +89,7 @@ export class RecordsScene {
 
   drawRow(ctx, run, index) {
     const x = 30;
-    const y = 158 + index * 96;
+    const y = 168 + index * 96;
     const w = 420;
     const h = 84;
     const weapon = getWeapon(run.weaponId);
@@ -107,7 +118,9 @@ export class RecordsScene {
       mono: true,
       glow: index === 0 ? 10 : 0,
     });
-    label(ctx, `${weapon.name} · ${difficulty.name}`, x + 64, y + 54, 10, weapon.color, {
+    const modeName =
+      run.mode === 'daily' ? `DAILY ${formatDailyDate(run.dailyDate)}` : difficulty.name;
+    label(ctx, `${weapon.name} · ${modeName}`, x + 64, y + 54, 10, weapon.color, {
       align: 'left',
       weight: 600,
     });

@@ -23,12 +23,13 @@ export function pickType(time, roll = Math.random()) {
 }
 
 export function spawnEnemy(scene, time) {
-  let type = pickType(time);
+  const random = scene.random || Math.random;
+  let type = pickType(time, random());
 
   if (type === 'dart') {
-    const side = Math.random() < 0.5 ? 1 : -1;
-    const y = 110 + Math.random() * 170;
-    scene.enemies.push(new DartEnemy(side, y));
+    const side = random() < 0.5 ? 1 : -1;
+    const y = 110 + random() * 170;
+    scene.enemies.push(new DartEnemy(side, y, random));
     return;
   }
 
@@ -38,9 +39,9 @@ export function spawnEnemy(scene, time) {
   }
 
   if (type === 'turret') {
-    const x = 80 + Math.random() * (VIEW.w - 160);
-    const hoverY = 130 + Math.random() * 90;
-    scene.enemies.push(new TurretEnemy(x, hoverY));
+    const x = 80 + random() * (VIEW.w - 160);
+    const hoverY = 130 + random() * 90;
+    scene.enemies.push(new TurretEnemy(x, hoverY, random));
     return;
   }
 
@@ -51,16 +52,18 @@ export function spawnEnemy(scene, time) {
     if (active >= 2) {
       type = 'hex';
     } else {
-      const speed = 34 + Math.random() * 20 + Math.min(time * 0.35, 24);
+      const speed = 34 + random() * 20 + Math.min(time * 0.35, 24);
       scene.enemies.push(
-        new SplitterEnemy(70 + Math.random() * (VIEW.w - 140), -50, speed)
+        new SplitterEnemy(70 + random() * (VIEW.w - 140), -50, speed, random)
       );
       return;
     }
   }
 
-  const speed = 42 + Math.random() * 26 + Math.min(time * 0.5, 40);
-  scene.enemies.push(new HexEnemy(60 + Math.random() * (VIEW.w - 120), -40, speed));
+  const speed = 42 + random() * 26 + Math.min(time * 0.5, 40);
+  scene.enemies.push(
+    new HexEnemy(60 + random() * (VIEW.w - 120), -40, speed, random)
+  );
 }
 
 export function spawnInterval(time) {

@@ -2,17 +2,17 @@ import { PICKUP, COLORS } from '../config.js';
 import { polygon } from '../core/draw.js';
 
 export class Pickup {
-  constructor(kind, x, y) {
+  constructor(kind, x, y, random = Math.random) {
     this.kind = kind;
     this.x = x;
     this.y = y;
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 30 + Math.random() * 45;
+    const angle = random() * Math.PI * 2;
+    const speed = 30 + random() * 45;
     this.vx = Math.cos(angle) * speed * 0.7;
     this.vy = Math.sin(angle) * speed * 0.4 + 40;
     this.life = PICKUP.life;
     this.maxLife = PICKUP.life;
-    this.rot = Math.random() * Math.PI * 2;
+    this.rot = random() * Math.PI * 2;
     this.dead = false;
   }
 

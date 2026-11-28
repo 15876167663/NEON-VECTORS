@@ -8,6 +8,7 @@ import { PlayScene } from '../scenes/PlayScene.js';
 import { RecordsScene } from '../scenes/RecordsScene.js';
 import { SettingsScene } from '../scenes/SettingsScene.js';
 import { WeaponScene } from '../scenes/WeaponScene.js';
+import { AchievementsScene } from '../scenes/AchievementsScene.js';
 
 export class Game {
   constructor(canvas) {
@@ -49,12 +50,16 @@ export class Game {
     this.setScene(new RecordsScene(this));
   }
 
-  toWeapon(difficultyId) {
-    this.setScene(new WeaponScene(this, difficultyId));
+  toAchievements() {
+    this.setScene(new AchievementsScene(this));
   }
 
-  startGame(difficultyId, weaponId) {
-    this.setScene(new PlayScene(this, difficultyId, weaponId));
+  toWeapon(difficultyId, run = null) {
+    this.setScene(new WeaponScene(this, difficultyId, run));
+  }
+
+  startGame(difficultyId, weaponId, run = null) {
+    this.setScene(new PlayScene(this, difficultyId, weaponId, run));
   }
 
   setScene(scene) {

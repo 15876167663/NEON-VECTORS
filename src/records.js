@@ -37,6 +37,8 @@ function sanitizeRun(raw) {
         : 'standard',
     duration: Math.round(toNumber(raw.duration, 0) * 10) / 10,
     bosses: toInteger(raw.bosses, 0),
+    mode: raw.mode === 'daily' ? 'daily' : 'endless',
+    dailyDate: typeof raw.dailyDate === 'string' ? raw.dailyDate : '',
     at: toInteger(raw.at, 0),
   };
 }

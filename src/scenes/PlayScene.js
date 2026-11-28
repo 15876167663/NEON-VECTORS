@@ -11,12 +11,16 @@ import { drawHud, drawBossBar } from '../render/hud.js';
 import { label } from '../core/draw.js';
 import { vibrate } from '../settings.js';
 import { recordRun } from '../records.js';
+import { createSeededRandom, recordDailyResult } from '../daily.js';
+import { unlockAchievements } from '../achievements.js';
 
 export class PlayScene {
-  constructor(game, difficultyId, weaponId = 'pulse') {
+  constructor(game, difficultyId, weaponId = 'pulse', run = null) {
     this.game = game;
     this.diff = DIFFICULTIES[difficultyId] || DIFFICULTIES.standard;
     this.weaponId = weaponId;
+    this.run = run;
+    this.random = run?.seed != null ? createSeededRandom(run.seed) : Math.random;
     this.player = new Player(this.diff, weaponId);
     this.bullets = [];
     this.ebullets = [];
@@ -59,6 +63,8 @@ export class PlayScene {
     this.isNewRecord = false;
     this.runRank = null;
     this.bestScore = 0;
+    this.dailyRecord = null;
+    this.newAchievements = [];
   }
 
   get wave() {
@@ -84,7 +90,7 @@ export class PlayScene {
 
   pointerDown(pointer) {
     if (this.phase === 'over') {
-      this.game.startGame(this.diff.id, this.weaponId);
+      this.game.startGame(this.diff.id, this.weaponId, this.run);
       return;
     }
 
@@ -123,9 +129,11 @@ export class PlayScene {
   keyDown(key) {
     if (this.phase === 'over') {
       if (key === 'r' || key === ' ' || key === 'enter') {
-        this.game.startGame(this.diff.id, this.weaponId);
+        this.game.startGame(this.diff.id, this.weaponId, this.run);
       } else if (key === 'l') {
         this.game.toRecords();
+      } else if (key === 'g') {
+        this.game.toAchievements();
       } else if (key === 'escape' || key === 't') this.game.toTitle();
       return;
     }
@@ -184,7 +192,7 @@ export class PlayScene {
   }
 
   spawnPickup(kind, x, y) {
-    this.pickups.push(new Pickup(kind, x, y));
+    this.pickups.push(new Pickup(kind, x, y, this.random));
   }
 
   spawnBoss() {
@@ -195,7 +203,7 @@ export class PlayScene {
     this.pendingEnemies.length = 0;
 
     this.bossIndex += 1;
-    this.boss = new Boss(this.bossIndex);
+    this.boss = new Boss(this.bossIndex, this.random);
     this.bossWarnT = 2.2;
     this.shake = 10;
     this.flash = 0.45;
@@ -250,10 +258,18 @@ export class PlayScene {
       );
     }
     for (let i = 0; i < 6; i += 1) {
-      this.spawnPickup('core', boss.x + (Math.random() - 0.5) * 90, boss.y + (Math.random() - 0.5) * 40);
+      this.spawnPickup(
+        'core',
+        boss.x + (this.random() - 0.5) * 90,
+        boss.y + (this.random() - 0.5) * 40
+      );
     }
     for (let i = 0; i < 3; i += 1) {
-      this.spawnPickup('module', boss.x + (Math.random() - 0.5) * 90, boss.y + (Math.random() - 0.5) * 40);
+      this.spawnPickup(
+        'module',
+        boss.x + (this.random() - 0.5) * 90,
+        boss.y + (this.random() - 0.5) * 40
+      );
     }
     spawnFloater(this.floaters, boss.x, boss.y - 10, `BOSS +${gain}`, '#ff7ab6', 18);
 
@@ -276,11 +292,33 @@ export class PlayScene {
       duration: this.time,
       bosses: this.bossesDefeated,
       at: Date.now(),
+      mode: this.run?.mode || 'endless',
+      dailyDate: this.run?.dateKey || '',
     });
 
     this.isNewRecord = result.isNewRecord;
     this.runRank = result.rank;
     this.bestScore = result.records.best.score;
+
+    if (this.run?.mode === 'daily') {
+      this.dailyRecord = recordDailyResult({
+        dateKey: this.run.dateKey,
+        score: this.score,
+        wave: this.wave,
+        bosses: this.bossesDefeated,
+      });
+    }
+
+    const achievementResult = unlockAchievements({
+      kills: this.kills,
+      maxCombo: this.maxCombo,
+      wave: this.wave,
+      bosses: this.bossesDefeated,
+      score: this.score,
+      weaponLevel: this.player.weaponLevel,
+      mode: this.run?.mode || 'endless',
+    });
+    this.newAchievements = achievementResult.newlyUnlocked;
   }
 
   killEnemy(enemy) {
@@ -535,7 +573,8 @@ export class PlayScene {
         this.spawnT -= step;
         if (this.spawnT <= 0) {
           spawnEnemy(this, this.time);
-          this.spawnT = spawnInterval(this.time) * this.diff.spawnScale * (0.8 + Math.random() * 0.4);
+          this.spawnT =
+            spawnInterval(this.time) * this.diff.spawnScale * (0.8 + this.random() * 0.4);
         }
       }
 
@@ -739,7 +778,9 @@ export class PlayScene {
 
     label(
       ctx,
-      `难度 ${this.diff.name} · 到达波次 ${this.wave}`,
+      this.run?.mode === 'daily'
+        ? `DAILY ${this.run.dateLabel} · ${this.diff.name} · 波次 ${this.wave}`
+        : `难度 ${this.diff.name} · 到达波次 ${this.wave}`,
       VIEW.w / 2,
       rowY + 108,
       12,
@@ -747,19 +788,46 @@ export class PlayScene {
       { weight: 500 }
     );
 
+    let nextY = rowY + 136;
+    if (this.run?.mode === 'daily' && this.dailyRecord) {
+      const dailyBest = String(this.dailyRecord.result.bestScore).padStart(6, '0');
+      const prefix = this.dailyRecord.isNewBest ? 'NEW DAILY · ' : '';
+      label(
+        ctx,
+        `${prefix}今日最佳 ${dailyBest} · SEED ${this.run.seedLabel}`,
+        VIEW.w / 2,
+        rowY + 130,
+        11,
+        '#ffd166',
+        { weight: 600, mono: true }
+      );
+      nextY = rowY + 152;
+    }
+
     const best = String(this.bestScore).padStart(6, '0');
     const rank = this.runRank ? ` · 本局 #${this.runRank}` : '';
-    label(ctx, `本机最高 ${best}${rank}`, VIEW.w / 2, rowY + 136, 12, '#ffd166', {
+    label(ctx, `本机最高 ${best}${rank}`, VIEW.w / 2, nextY, 12, '#ffd166', {
       weight: 600,
       mono: true,
     });
 
+    if (this.newAchievements.length) {
+      const text =
+        this.newAchievements.length === 1
+          ? `新成就 ${this.newAchievements[0].name} · G 查看`
+          : `新成就 ${this.newAchievements.length} 项 · G 查看`;
+      label(ctx, text, VIEW.w / 2, nextY + 22, 11, '#8ef6ff', {
+        weight: 600,
+        mono: true,
+      });
+    }
+
     const blink = 0.4 + 0.6 * Math.abs(Math.sin(this.time * 2.2));
-    label(ctx, 'R / 空格 / 点击 重开', VIEW.w / 2, VIEW.h * 0.71, 16, '#d6f1ff', {
+    label(ctx, 'R / 空格 / 点击 重开', VIEW.w / 2, VIEW.h * 0.74, 16, '#d6f1ff', {
       weight: 600,
       alpha: blink,
     });
-    label(ctx, 'L 查看战绩 · Esc 返回标题', VIEW.w / 2, VIEW.h * 0.71 + 30, 13, COLORS.faint, {
+    label(ctx, 'L 战绩 · G 成就 · Esc 标题', VIEW.w / 2, VIEW.h * 0.74 + 30, 13, COLORS.faint, {
       weight: 500,
     });
   }

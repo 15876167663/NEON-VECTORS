@@ -31,19 +31,20 @@ function warnRing(ctx, enemy, radius) {
 }
 
 export class HexEnemy {
-  constructor(x, y, speed) {
+  constructor(x, y, speed, random = Math.random) {
     this.id = nextId++;
     this.kind = 'hex';
     this.x = x;
     this.y = y;
-    this.r = 19 + Math.random() * 6;
+    this.random = random;
+    this.r = 19 + this.random() * 6;
     this.hp = ENEMY.hex.hp;
     this.score = ENEMY.hex.score;
     this.vy = speed;
-    this.phase = Math.random() * Math.PI * 2;
-    this.drift = 18 + Math.random() * 26;
-    this.shootT = 1.1 + Math.random() * 0.8;
-    this.rot = Math.random() * Math.PI * 2;
+    this.phase = this.random() * Math.PI * 2;
+    this.drift = 18 + this.random() * 26;
+    this.shootT = 1.1 + this.random() * 0.8;
+    this.rot = this.random() * Math.PI * 2;
     this.spawn = 0;
     this.hitFlash = 0;
     this.dead = false;
@@ -61,7 +62,7 @@ export class HexEnemy {
     if (this.shootT <= 0 && this.y > 40 && this.y < VIEW.h - 200) {
       this.shootT = Math.max(
         ENDLESS.hexFireFloor,
-        1.5 + Math.random() * 0.5 - scene.time * 0.008
+        1.5 + this.random() * 0.5 - scene.time * 0.008
       );
       aimedSpread(scene, this, 3, 0.15);
     }
@@ -99,7 +100,7 @@ export class HexEnemy {
 }
 
 export class DartEnemy {
-  constructor(side, y) {
+  constructor(side, y, random = Math.random) {
     this.id = nextId++;
     this.kind = 'dart';
     this.x = side > 0 ? -30 : VIEW.w + 30;
@@ -108,8 +109,9 @@ export class DartEnemy {
     this.r = 16;
     this.hp = ENEMY.dart.hp;
     this.score = ENEMY.dart.score;
-    this.vx = side * (230 + Math.random() * 50);
-    this.phase = Math.random() * Math.PI * 2;
+    this.random = random;
+    this.vx = side * (230 + this.random() * 50);
+    this.phase = this.random() * Math.PI * 2;
     this.age = 0;
     this.fired = false;
     this.spawn = 0;
@@ -160,7 +162,7 @@ export class DartEnemy {
 }
 
 export class TurretEnemy {
-  constructor(x, hoverY) {
+  constructor(x, hoverY, random = Math.random) {
     this.id = nextId++;
     this.kind = 'turret';
     this.x = x;
@@ -173,7 +175,8 @@ export class TurretEnemy {
     this.phase = 0;
     this.volleys = 0;
     this.shootT = 1.5;
-    this.driftDir = Math.random() < 0.5 ? 1 : -1;
+    this.random = random;
+    this.driftDir = this.random() < 0.5 ? 1 : -1;
     this.spawn = 0;
     this.hitFlash = 0;
     this.dead = false;
@@ -239,7 +242,7 @@ export class TurretEnemy {
 }
 
 export class ShardEnemy {
-  constructor(x, y, side) {
+  constructor(x, y, side, random = Math.random) {
     this.id = nextId++;
     this.kind = 'shard';
     this.x = x;
@@ -247,11 +250,12 @@ export class ShardEnemy {
     this.r = 11;
     this.hp = ENEMY.shard.hp;
     this.score = ENEMY.shard.score;
-    this.vx = side * (58 + Math.random() * 28);
-    this.vy = 46 + Math.random() * 24;
+    this.random = random;
+    this.vx = side * (58 + this.random() * 28);
+    this.vy = 46 + this.random() * 24;
     this.age = 0;
     this.fired = false;
-    this.rot = Math.random() * Math.PI * 2;
+    this.rot = this.random() * Math.PI * 2;
     this.spawn = 0;
     this.hitFlash = 0;
     this.dead = false;
@@ -294,7 +298,7 @@ export class ShardEnemy {
 }
 
 export class SplitterEnemy {
-  constructor(x, y, speed) {
+  constructor(x, y, speed, random = Math.random) {
     this.id = nextId++;
     this.kind = 'splitter';
     this.x = x;
@@ -303,10 +307,11 @@ export class SplitterEnemy {
     this.hp = ENEMY.splitter.hp;
     this.score = ENEMY.splitter.score;
     this.vy = speed;
-    this.phase = Math.random() * Math.PI * 2;
+    this.random = random;
+    this.phase = this.random() * Math.PI * 2;
     this.age = 0;
-    this.rot = Math.random() * Math.PI * 2;
-    this.shootT = 1.5 + Math.random() * 0.6;
+    this.rot = this.random() * Math.PI * 2;
+    this.shootT = 1.5 + this.random() * 0.6;
     this.spawn = 0;
     this.hitFlash = 0;
     this.dead = false;
@@ -335,7 +340,8 @@ export class SplitterEnemy {
         new ShardEnemy(
           this.x + side * ENEMY.splitter.shardOffset,
           this.y,
-          side
+          side,
+          this.random
         )
       );
     }

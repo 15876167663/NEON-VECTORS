@@ -1,6 +1,7 @@
 import { VIEW, COLORS, DIFFICULTIES } from '../config.js';
 import { polygon, roundRect, label } from '../core/draw.js';
 import { loadRecords } from '../records.js';
+import { dailyChallenge, loadDailyResult } from '../daily.js';
 
 const CARDS = [
   {
@@ -21,10 +22,18 @@ export class TitleScene {
     this.time = 0;
     this.index = 0;
     this.records = loadRecords();
+    this.refreshDaily();
   }
 
   enter() {
     this.records = loadRecords();
+    this.refreshDaily();
+  }
+
+  refreshDaily() {
+    this.daily = dailyChallenge();
+    const result = loadDailyResult();
+    this.dailyBest = result.dateKey === this.daily.dateKey ? result : null;
   }
 
   update(dt) {
@@ -46,10 +55,27 @@ export class TitleScene {
     } else if (key === 'l') {
       this.game.audio?.sfx('ui');
       this.game.toRecords();
+    } else if (key === 'g') {
+      this.game.audio?.sfx('ui');
+      this.game.toAchievements();
+    } else if (key === 'c') {
+      this.startDaily();
     }
   }
 
   pointerDown(pointer) {
+    const achievements = this.achievementsRect();
+    if (
+      pointer.x >= achievements.x &&
+      pointer.x <= achievements.x + achievements.w &&
+      pointer.y >= achievements.y &&
+      pointer.y <= achievements.y + achievements.h
+    ) {
+      this.game.audio?.sfx('ui');
+      this.game.toAchievements();
+      return;
+    }
+
     const records = this.recordsRect();
     if (
       pointer.x >= records.x &&
@@ -59,6 +85,17 @@ export class TitleScene {
     ) {
       this.game.audio?.sfx('ui');
       this.game.toRecords();
+      return;
+    }
+
+    const daily = this.dailyRect();
+    if (
+      pointer.x >= daily.x &&
+      pointer.x <= daily.x + daily.w &&
+      pointer.y >= daily.y &&
+      pointer.y <= daily.y + daily.h
+    ) {
+      this.startDaily();
       return;
     }
 
@@ -93,6 +130,11 @@ export class TitleScene {
     this.game.toWeapon(id);
   }
 
+  startDaily() {
+    this.game.audio?.sfx('select');
+    this.game.toWeapon(CARDS[this.index].id, this.daily);
+  }
+
   cardRect(index) {
     const w = 188;
     const h = 116;
@@ -107,6 +149,14 @@ export class TitleScene {
 
   recordsRect() {
     return { x: 20, y: 20, w: 76, h: 30 };
+  }
+
+  achievementsRect() {
+    return { x: VIEW.w / 2 - 38, y: 20, w: 76, h: 30 };
+  }
+
+  dailyRect() {
+    return { x: 70, y: 360, w: 340, h: 36 };
   }
 
   draw(ctx) {
@@ -142,6 +192,8 @@ export class TitleScene {
     for (let i = 0; i < CARDS.length; i++) this.drawCard(ctx, i);
     this.drawSettingsButton(ctx);
     this.drawRecordsButton(ctx);
+    this.drawAchievementsButton(ctx);
+    this.drawDailyBar(ctx);
 
     const best = this.records.best;
     const bestText =
@@ -198,6 +250,50 @@ export class TitleScene {
       weight: 600,
       mono: true,
     });
+  }
+
+  drawAchievementsButton(ctx) {
+    const rect = this.achievementsRect();
+    ctx.save();
+    roundRect(ctx, rect.x, rect.y, rect.w, rect.h, 8);
+    ctx.fillStyle = 'rgba(10, 18, 32, 0.75)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(120, 180, 255, 0.25)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+    label(ctx, '成就 G', rect.x + rect.w / 2, rect.y + rect.h / 2, 11, 'rgba(180, 220, 255, 0.7)', {
+      weight: 600,
+      mono: true,
+    });
+  }
+
+  drawDailyBar(ctx) {
+    const rect = this.dailyRect();
+    const best = this.dailyBest?.bestScore || 0;
+    ctx.save();
+    roundRect(ctx, rect.x, rect.y, rect.w, rect.h, 9);
+    ctx.fillStyle = 'rgba(30, 25, 12, 0.78)';
+    ctx.fill();
+    ctx.strokeStyle = 'rgba(255, 209, 102, 0.38)';
+    ctx.lineWidth = 1;
+    ctx.stroke();
+    ctx.restore();
+
+    label(ctx, `每日挑战 ${this.daily.dateLabel} · C`, rect.x + 14, rect.y + rect.h / 2, 11, '#ffd166', {
+      align: 'left',
+      mono: true,
+      weight: 700,
+    });
+    label(
+      ctx,
+      best > 0 ? `BEST ${String(best).padStart(6, '0')}` : '固定种子',
+      rect.x + rect.w - 14,
+      rect.y + rect.h / 2,
+      10,
+      best > 0 ? '#ffe9b3' : 'rgba(255, 220, 150, 0.55)',
+      { align: 'right', mono: true, weight: 600 }
+    );
   }
 
   drawCard(ctx, index) {

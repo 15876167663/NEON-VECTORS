@@ -36,7 +36,11 @@ export function drawHud(ctx, scene) {
   ctx.textAlign = 'center';
   ctx.font = `500 11px ${FONT.mono}`;
   ctx.fillStyle = 'rgba(150, 200, 255, 0.42)';
-  ctx.fillText(scene.diff.name, VIEW.w / 2, 26);
+  ctx.fillText(
+    scene.run?.mode === 'daily' ? `DAILY ${scene.run.dateLabel}` : scene.diff.name,
+    VIEW.w / 2,
+    26
+  );
 
   if (scene.mult > 1) {
     ctx.save();
